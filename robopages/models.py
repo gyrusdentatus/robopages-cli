@@ -18,7 +18,7 @@ class Parameter(BaseModel):
 
 
 class Function(BaseModel):
-    description: str | None = None
+    description: str = ""
     parameters: dict[str, Parameter] = {}
     # if command
     cmdline: list[str] | None = None
@@ -129,6 +129,50 @@ class Robook(BaseModel):
         """Convert all robopages to OLLAMA compatible tools (https://python.langchain.com/v0.1/docs/integrations/chat/ollama_functions/)."""
 
         return self.to_openai()
+
+    def to_rigging(self) -> list["rg.Tool"]:
+        """Convert all robopages to Rigging compatible tools (https://rigging.dreadnode.io/topics/tools/)."""
+        import rigging as rg
+
+        class RiggingWrapper(rg.Tool):
+            name = "a"
+            description = "b"
+
+            def __init__(self, robopage: Robopage, func_name: str, func: Function):
+                self.name = func_name
+                self.description = func.description
+                self.func = func
+
+            def get_description(self) -> rg.tool.ToolDescription:
+                """Creates a full description of the tool for use in prompting"""
+
+                parameters = []
+                for param_name, param in self.func.parameters.items():
+                    parameters.append(
+                        rg.tool.ToolParameter(
+                            name=param_name,
+                            type=param.type,
+                            description=param.description,
+                        )
+                    )
+
+                return rg.tool.ToolDescription(
+                    name=self.name,
+                    description=self.description,
+                    functions=[
+                        rg.tool.ToolFunction(
+                            name=self.name,
+                            description=self.description,
+                            parameters=parameters,
+                        )
+                    ],
+                )
+
+        return [
+            RiggingWrapper(page, func_name, func)
+            for page in self.pages.values()
+            for (func_name, func) in page.functions.items()
+        ]
 
     def process(self, calls: list[dict], interactive: bool = True) -> dict[str, str]:
         """Process a list of tool calls from an LLM and return the result for each."""
