@@ -2,10 +2,11 @@ import pathlib
 import typing as t
 
 import typer
-from rich import print
+from rich import box, print
 from rich.prompt import Prompt
+from rich.table import Table
 
-from robopages.defaults import DEFAULT_PAGE_FILE_NAME, DEFAULT_PATH
+from robopages.defaults import DEFAULT_EXTENSION, DEFAULT_PAGE_FILE_NAME, DEFAULT_PATH
 from robopages.models import Robook, Robopage
 
 cli = typer.Typer(no_args_is_help=True, help="Man pages but for robots!")
@@ -30,6 +31,62 @@ def create(
             return
 
     Robopage.create_example_in_path(path)
+
+
+@cli.command(help="View robopages.")
+def view(
+    path: t.Annotated[
+        pathlib.Path,
+        typer.Argument(
+            help="Base path to search for robopages.",
+            file_okay=True,
+            resolve_path=True,
+        ),
+    ] = DEFAULT_PATH,
+    filter: t.Annotated[
+        str | None,
+        typer.Option(
+            "--filter",
+            "-f",
+            help="Filter results by this string.",
+        ),
+    ] = None,
+) -> None:
+    book = Robook.from_path(path)
+
+    print()
+
+    table = Table(box=box.ROUNDED)
+    table.add_column("category")
+    table.add_column("page")
+    table.add_column("function")
+    table.add_column("description")
+
+    for page_path, page in book.pages.items():
+        first_page = True
+        for function_name, function in page.functions.items():
+            if first_page:
+                relative_parts = list(page_path.relative_to(path).parts)
+                relative_parts[-1] = relative_parts[-1].removesuffix(
+                    f".{DEFAULT_EXTENSION}"
+                )
+                category = (
+                    " > ".join(relative_parts[:-1]) if len(relative_parts) > 1 else ""
+                )
+                page_name = relative_parts[-1] if relative_parts else ""
+                first_page = False
+                table.add_row(
+                    category,
+                    page_name,
+                    function.to_string(function_name),
+                    function.description,
+                )
+            else:
+                table.add_row(
+                    "", "", function.to_string(function_name), function.description
+                )
+
+    print(table)
 
 
 @cli.command(

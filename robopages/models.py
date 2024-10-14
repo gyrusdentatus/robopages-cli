@@ -43,6 +43,13 @@ class Function(BaseModel):
         out = res.stdout.strip()
         return f"{err}\n{out}" if err else out
 
+    def to_string(self, name: str) -> str:
+        args = []
+        for param_name, param in self.parameters.items():
+            args.append(f"[yellow]{param_name}[/][dim]:{param.type}[/]")
+
+        return f"{name}({', '.join(args)})"
+
 
 class Robopage(BaseModel):
     name: str | None = None

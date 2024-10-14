@@ -22,3 +22,21 @@ functions:
       - -A
       - -vvv    
       - ${target}
+
+  nmap_udp_ports_scan:
+    description: Scan one or more targets for the list of common UDP ports.
+    parameters:
+      target:
+        type: string
+        description: The IP address, CIDR, range or hostname to scan.
+        examples:
+          - 192.168.1.1
+          - 192.168.1.0/24
+          - scanme.nmap.org
+    cmdline:
+      - sudo
+      - nmap
+      - -sU
+      - -A
+      - -vvv    
+      - ${target}      
