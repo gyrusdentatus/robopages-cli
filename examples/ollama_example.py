@@ -13,7 +13,7 @@ async def run(model: str):
         {
             "role": "user",
             # assumes that examples/robopages/nmap.yml is in ~/.robopages/
-            "content": "Find open ports on 127.0.0.1",
+            "content": "Run sqlmap on localhost",
         }
     ]
 

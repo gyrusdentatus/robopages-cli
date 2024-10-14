@@ -1,5 +1,6 @@
 import pathlib
 import os
+import shutil
 import subprocess
 
 from pydantic import BaseModel
@@ -17,31 +18,84 @@ class Parameter(BaseModel):
     examples: list[str] | None = None
 
 
+class Container(BaseModel):
+    image: str
+    args: list[str]
+    volumes: list[str]
+
+    def pull(self) -> None:
+        print(f":water_wave: pulling container [green]{self.image}[/]\n")
+        os.system(f'docker pull "{self.image}"')
+        print()
+
+
 class Function(BaseModel):
     description: str = ""
     parameters: dict[str, Parameter] = {}
-    # if command
+    container: Container | None = None
     cmdline: list[str] | None = None
 
-    def execute(self, arguments: dict[str, str]) -> str:
+    def _handle_with_container(self, app_name_idx: int) -> None:
+        if not self.cmdline:
+            raise Exception("no command line to execute")
+
+        elif not self.container:
+            raise Exception(
+                f"binary {self.cmdline[app_name_idx]} not found in $PATH and container not set"
+            )
+
+        # pull the image
+        self.container.pull()
+
+        # create a new command line by replacing the app name
+        # with the docker equivalent command line
+        cmdline = []
+        for idx, arg in enumerate(self.cmdline):
+            if idx != app_name_idx:
+                cmdline.append(arg)
+            else:
+                cmdline.extend(["docker", "run", "--rm", "-it"])
+                # add volumes if any
+                for volume in self.container.volumes:
+                    # expand any environment variable
+                    expanded_volume = os.path.expandvars(volume)
+                    cmdline.extend(["-v", expanded_volume])
+
+                # add any additional args
+                if self.container.args:
+                    cmdline.extend(self.container.args)
+
+                # add image
+                cmdline.append(self.container.image)
+
+        self.cmdline = cmdline
+
+    def _arg_value(self, arg: str, arguments: dict[str, str]) -> str:
+        # TODO: add better parsing for multiple interpolations
+        if arg.startswith("${"):
+            arg_name = arg[2:-1]
+            if arg_name in arguments:
+                return arguments[arg_name]
+            else:
+                raise Exception(f"Argument {arg_name} not found")
+        else:
+            return arg
+
+    def get_command_line(self, arguments: dict[str, str]) -> list[str]:
         if not self.cmdline:
             raise Exception("No command line to execute")
 
-        cmdline = []
-        for arg in self.cmdline:
-            if arg.startswith("${"):
-                arg_name = arg[2:-1]
-                if arg_name in arguments:
-                    cmdline.append(arguments[arg_name])
-                else:
-                    raise Exception(f"Argument {arg_name} not found")
-            else:
-                cmdline.append(arg)
+        app_name_idx = 0
+        app_name = self.cmdline[0]
+        if app_name == "sudo":
+            app_name = self.cmdline[1]
+            app_name_idx = 1
 
-        res = subprocess.run(cmdline, capture_output=True, text=True)
-        err = res.stderr.strip()
-        out = res.stdout.strip()
-        return f"{err}\n{out}" if err else out
+        binary = shutil.which(app_name)
+        if not binary:
+            self._handle_with_container(app_name_idx)
+
+        return [self._arg_value(arg, arguments) for arg in self.cmdline]
 
     def to_string(self, name: str) -> str:
         args = []
@@ -195,16 +249,21 @@ class Robook(BaseModel):
                     )
 
                     func = page.functions[call.function.name]
+                    cmdline = func.get_command_line(call.function.arguments)
+
                     if (
                         not interactive
                         or Prompt.ask(
-                            ":eyes: execute?",
+                            f":eyes: execute? [yellow]{' '.join(cmdline)}[/] ",
                             choices=["y", "n"],
                             default="n",
                         )
                         == "y"
                     ):
-                        output = func.execute(call.function.arguments)
+                        res = subprocess.run(cmdline, capture_output=True, text=True)
+                        err = res.stderr.strip()
+                        out = res.stdout.strip()
+                        output = f"{err}\n{out}" if err else out
                     else:
                         output = "<not executed>"
 
