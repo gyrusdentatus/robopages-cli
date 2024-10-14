@@ -6,12 +6,6 @@ from robopages.models import Robook
 
 
 async def run(model: str):
-    # This will load all pages from ~/.robopages/ and convert to OLLAMA compatible tools.
-    #
-    # Alternatively you can:
-    # - override the default path by setting the ROBOPAGES_PATH environment variable
-    # - load a single page with Robook.from_path("my_page.yml").to_rigging()
-    # - load a directory of pages with Robook.from_path("./my_pages_dir/").to_rigging()
     robopages = Robook.load()
 
     chat = (

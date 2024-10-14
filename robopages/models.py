@@ -277,15 +277,17 @@ class Robook(BaseModel):
         return results
 
     @staticmethod
-    def load() -> "Robook":
+    def load(filter: str | None = None) -> "Robook":
         """Load all robopages from the environment variable ROBOPAGES_PATH if set or the default path."""
 
         return Robook.from_path(
-            pathlib.Path(os.getenv(DEFAULT_PATH_ENV_VAR) or DEFAULT_PATH)
+            pathlib.Path(os.getenv(DEFAULT_PATH_ENV_VAR) or DEFAULT_PATH), filter
         )
 
     @staticmethod
-    def from_path(path: pathlib.Path = DEFAULT_PATH) -> "Robook":
+    def from_path(
+        path: pathlib.Path = DEFAULT_PATH, filter: str | None = None
+    ) -> "Robook":
         """Load all robopages from the given file or directory."""
 
         robopaths: list[pathlib.Path] = []
@@ -303,13 +305,14 @@ class Robook(BaseModel):
 
         num_functions = 0
         for robopath in robopaths:
-            robopage = parse_yaml_raw_as(Robopage, robopath.read_text())
-            if robopage.name is None:
-                robopage.name = robopath.stem
+            if not filter or filter in str(robopath):
+                robopage = parse_yaml_raw_as(Robopage, robopath.read_text())
+                if robopage.name is None:
+                    robopage.name = robopath.stem
 
-            num_functions += len(robopage.functions)
-            # TODO: make sure function names are unique
-            robopages[robopath] = robopage
+                num_functions += len(robopage.functions)
+                # TODO: make sure function names are unique
+                robopages[robopath] = robopage
 
         print(f":book: loaded {num_functions} functions from {path}")
 

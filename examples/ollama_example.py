@@ -13,17 +13,23 @@ async def run(model: str):
         {
             "role": "user",
             # assumes that examples/robopages/nmap.yml is in ~/.robopages/
-            "content": "Run sqlmap on localhost",
+            "content": "Find open ports on 127.0.0.1",
         }
     ]
 
     # This will load all pages from ~/.robopages/ and convert to OLLAMA compatible tools.
     #
-    # Alternatively you can:
-    # - override the default path by setting the ROBOPAGES_PATH environment variable
-    # - load a single page with Robook.from_path("my_page.yml").to_ollama()
-    # - load a directory of pages with Robook.from_path("./my_pages_dir/").to_ollama()
+    # The default path can be overridden by setting the ROBOPAGES_PATH environment variable.
     robopages = Robook.load()
+
+    # to load a specific subset of tools
+    # robopages = Robook.load("cybersecurity/offensive")
+
+    # to load a single page
+    # robopages = Robook.from_path("my_page.yml")
+
+    # to load a directory of pages
+    # robopages = Robook.from_path("./my_pages_dir/")
 
     response = await client.chat(
         model=model,
