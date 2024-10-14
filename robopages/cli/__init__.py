@@ -6,8 +6,15 @@ from rich import box, print
 from rich.prompt import Prompt
 from rich.table import Table
 
-from robopages.defaults import DEFAULT_EXTENSION, DEFAULT_PAGE_FILE_NAME, DEFAULT_PATH
+from robopages.defaults import (
+    DEFAULT_ADDRESS,
+    DEFAULT_EXTENSION,
+    DEFAULT_PAGE_FILE_NAME,
+    DEFAULT_PATH,
+    DEFAULT_PORT,
+)
 from robopages.models import Robook, Robopage
+import robopages.api as api
 
 cli = typer.Typer(no_args_is_help=True, help="Man pages but for robots!")
 
@@ -132,3 +139,48 @@ def to_json(
         print(f":file_folder: saved to {output}")
     else:
         print(data)
+
+
+@cli.command(help="Serve the robopages as a local API.")
+def serve(
+    path: t.Annotated[
+        pathlib.Path,
+        typer.Option(
+            "--path",
+            "-p",
+            help="Robopage or directory containing multiple robopages.",
+            file_okay=True,
+            resolve_path=True,
+        ),
+    ] = DEFAULT_PATH,
+    filter: t.Annotated[
+        str,
+        typer.Option(
+            "--filter",
+            "-f",
+            help="Filter by this string.",
+        ),
+    ]
+    | None = None,
+    address: t.Annotated[
+        str,
+        typer.Option(
+            "--address",
+            "-a",
+            help="Address to bind to.",
+        ),
+    ] = DEFAULT_ADDRESS,
+    port: t.Annotated[
+        int,
+        typer.Option(
+            "--port",
+            "-p",
+            help="Port to bind to.",
+        ),
+    ] = DEFAULT_PORT,
+) -> None:
+    import uvicorn
+
+    api.book = Robook.from_path(path, filter)
+
+    uvicorn.run(api.app, host=address, port=port)

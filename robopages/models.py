@@ -181,15 +181,20 @@ class Robocall(BaseModel):
 class Robook(BaseModel):
     pages: dict[pathlib.Path, Robopage]
 
-    def to_openai(self) -> list[dict]:
+    def to_openai(self, filter: str | None = None) -> list[dict]:
         """Convert all robopages to OpenAI compatible tools (https://platform.openai.com/docs/guides/function-calling)."""
 
-        return [tool for page in self.pages.values() for tool in page.to_openai()]
+        filtered: list[Robopage] = []
+        for path, page in self.pages.items():
+            if filter is None or filter in str(path):
+                filtered.append(page)
 
-    def to_ollama(self) -> list[dict]:
+        return [tool for page in filtered for tool in page.to_openai()]
+
+    def to_ollama(self, filter: str | None = None) -> list[dict]:
         """Convert all robopages to OLLAMA compatible tools (https://python.langchain.com/v0.1/docs/integrations/chat/ollama_functions/)."""
 
-        return self.to_openai()
+        return self.to_openai(filter)
 
     def to_rigging(self) -> list["rg.Tool"]:
         """Convert all robopages to Rigging compatible tools (https://rigging.dreadnode.io/topics/tools/)."""
@@ -235,12 +240,16 @@ class Robook(BaseModel):
             for (func_name, func) in page.functions.items()
         ]
 
-    def process(self, calls: list[dict], interactive: bool = True) -> dict[str, str]:
+    def process(
+        self, calls: list[dict | Robocall], interactive: bool = True
+    ) -> dict[str, str]:
         """Process a list of tool calls from an LLM and return the result for each."""
 
         results = {}
 
-        for call in [Robocall(**call) for call in calls]:
+        for call in [
+            Robocall(**call) if isinstance(call, dict) else call for call in calls
+        ]:
             output = None
             for page in self.pages.values():
                 if call.function.name in page.functions:

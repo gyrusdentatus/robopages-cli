@@ -12,7 +12,7 @@ Pages are loaded by default from the `~/.robopages/` directory, see the `example
 
 ## Usage
 
-This python package includes a CLI for creating and converting robopages and a library for using it as an SDK.
+This project includes a CLI for creating and viewing robopages and can be used as a python library or as a REST API.
 
 ### CLI
 
@@ -37,12 +37,61 @@ robopages create my_first_page.yml
 Convert to OpenAI compatible tools:
 
 ```bash
-robopages to-openai --path ./examples/robopages
+robopages to-json --path ./examples/robopages
+```
+
+Start the REST API:
+
+```bash
+robopages serve
 ```
 
 ### SDK
 
-Use with OLLAMA (or any OpenAI function calling schema compatible client and model):
+Use with OLLAMA (or any OpenAI function calling schema compatible client and model) via the REST API:
+
+```python
+import ollama
+import asyncio
+import requests
+
+from rich import print
+
+
+async def run(model: str):
+    client = ollama.AsyncClient()
+
+    messages = [
+        {
+            "role": "user",
+            "content": "Find open ports on 127.0.0.1",
+        }
+    ]
+
+    tools = requests.get("http://localhost:8000/offensive").json()
+
+    response = await client.chat(
+        model=model,
+        messages=messages,
+        tools=tools,
+    )
+
+    print(response)
+
+    # if the response contains tool calls
+    if response["message"]["tool_calls"]:
+        # execute them via the API
+        results = requests.post(
+            "http://localhost:8000/process", json=response["message"]["tool_calls"]
+        )
+        # do whatever you want with the results
+        print(results)
+
+
+asyncio.run(run("llama3.1"))
+```
+
+Or by using the package:
 
 ```python
 import ollama
