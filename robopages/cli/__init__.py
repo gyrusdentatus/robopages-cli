@@ -92,7 +92,7 @@ def view(
 @cli.command(
     help="Print an OpenAI / OLLAMA compatible JSON schema for tool calling from the robopages."
 )
-def to_openai(
+def to_json(
     path: t.Annotated[
         pathlib.Path,
         typer.Option(
@@ -114,10 +114,19 @@ def to_openai(
         ),
     ]
     | None = None,
+    filter: t.Annotated[
+        str,
+        typer.Option(
+            "--filter",
+            "-f",
+            help="Filter by this string.",
+        ),
+    ]
+    | None = None,
 ) -> None:
     import json
 
-    data = json.dumps(Robook.from_path(path).to_openai(), indent=2)
+    data = json.dumps(Robook.from_path(path, filter).to_openai(), indent=2)
     if output:
         output.write_text(data)
         print(f":file_folder: saved to {output}")
