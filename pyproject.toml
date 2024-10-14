@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "robopages"
 version = "0.1.0"
-description = ""
+description = "Man pages but for robots."
 authors = ["evilsocket <evilsocket@gmail.com>"]
 readme = "README.md"
 
