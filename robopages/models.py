@@ -1,13 +1,10 @@
 import pathlib
 import os
-import shutil
-import subprocess
 import re
 
 from pydantic import BaseModel
 from pydantic_yaml import parse_yaml_raw_as, to_yaml_str
 from rich import print
-from rich.prompt import Prompt
 
 from robopages.defaults import DEFAULT_EXTENSION, DEFAULT_PATH, DEFAULT_PATH_ENV_VAR
 
@@ -24,53 +21,12 @@ class Container(BaseModel):
     args: list[str]
     volumes: list[str] = []
 
-    def pull(self) -> None:
-        print(f":water_wave: pulling container [green]{self.image}[/]\n")
-        os.system(f'docker pull "{self.image}"')
-        print()
-
 
 class Function(BaseModel):
     description: str = ""
     parameters: dict[str, Parameter] = {}
     container: Container | None = None
     cmdline: list[str] | None = None
-
-    def _handle_with_container(self, app_name_idx: int) -> None:
-        if not self.cmdline:
-            raise Exception("no command line to execute")
-
-        elif not self.container:
-            raise Exception(
-                f"binary {self.cmdline[app_name_idx]} not found in $PATH and container not set"
-            )
-
-        # TODO: check if the image is already pulled
-        # pull the image
-        self.container.pull()
-
-        # create a new command line by replacing the app name
-        # with the docker equivalent command line
-        cmdline = []
-        for idx, arg in enumerate(self.cmdline):
-            if idx != app_name_idx:
-                cmdline.append(arg)
-            else:
-                cmdline.extend(["docker", "run", "--rm"])
-                # add volumes if any
-                for volume in self.container.volumes:
-                    # expand any environment variable
-                    expanded_volume = os.path.expandvars(volume)
-                    cmdline.extend(["-v", expanded_volume])
-
-                # add any additional args
-                if self.container.args:
-                    cmdline.extend(self.container.args)
-
-                # add image
-                cmdline.append(self.container.image)
-
-        self.cmdline = cmdline
 
     def _arg_value(self, arg: str, arguments: dict[str, str]) -> str:
         """Parse interpolated variables with optional default values."""
@@ -101,18 +57,10 @@ class Function(BaseModel):
         return arg
 
     def get_command_line(self, arguments: dict[str, str]) -> list[str]:
+        """Get the command line to execute."""
+
         if not self.cmdline:
             raise Exception("No command line to execute")
-
-        app_name_idx = 0
-        app_name = self.cmdline[0]
-        if app_name == "sudo":
-            app_name = self.cmdline[1]
-            app_name_idx = 1
-
-        binary = shutil.which(app_name)
-        if not binary:
-            self._handle_with_container(app_name_idx)
 
         return [self._arg_value(arg, arguments) for arg in self.cmdline]
 
@@ -265,6 +213,8 @@ class Robook(BaseModel):
     ) -> dict[str, str]:
         """Process a list of tool calls from an LLM and return the result for each."""
 
+        from robopages import execution
+
         results = {}
 
         for call in [
@@ -273,35 +223,8 @@ class Robook(BaseModel):
             output = None
             for page in self.pages.values():
                 if call.function.name in page.functions:
-                    print(
-                        f":robot: executing [bold]{page.name}[/].{call.function.name}({', '.join(call.function.arguments.values())})"
-                    )
-
-                    func = page.functions[call.function.name]
-                    cmdline = func.get_command_line(call.function.arguments)
-
-                    if (
-                        not interactive
-                        or Prompt.ask(
-                            f":eyes: execute? [yellow]{' '.join(cmdline)}[/] ",
-                            choices=["y", "n"],
-                            default="n",
-                        )
-                        == "y"
-                    ):
-                        print(f":robot: [yellow]{' '.join(cmdline)}[/]")
-                        res = subprocess.run(
-                            " ".join(cmdline),
-                            capture_output=True,
-                            text=True,
-                            shell=True,
-                        )
-                        err = res.stderr.strip()
-                        out = res.stdout.strip()
-                        output = f"{err}\n{out}" if err else out
-                    else:
-                        output = "<not executed>"
-
+                    function = page.functions[call.function.name]
+                    output = execution.execute(call, function, interactive)
                     break
 
             if output is None:
