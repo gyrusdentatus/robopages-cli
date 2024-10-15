@@ -109,6 +109,7 @@ class Robopage(BaseModel):
     name: str | None = None
     description: str | None = None
     functions: dict[str, Function]
+    categories: list[str] = []
 
     @staticmethod
     def create_example_in_path(path: pathlib.Path) -> None:
@@ -269,6 +270,7 @@ class Robook(BaseModel):
                         )
                         == "y"
                     ):
+                        print(f":robot: [yellow]{' '.join(cmdline)}[/]")
                         res = subprocess.run(cmdline, capture_output=True, text=True)
                         err = res.stderr.strip()
                         out = res.stdout.strip()
@@ -318,6 +320,10 @@ class Robook(BaseModel):
                 robopage = parse_yaml_raw_as(Robopage, robopath.read_text())
                 if robopage.name is None:
                     robopage.name = robopath.stem
+
+                if not robopage.categories:
+                    relative_parts = list(robopath.relative_to(path).parts)
+                    robopage.categories = relative_parts[:-1]
 
                 num_functions += len(robopage.functions)
                 # TODO: make sure function names are unique

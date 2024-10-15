@@ -73,18 +73,10 @@ def view(
         first_page = True
         for function_name, function in page.functions.items():
             if first_page:
-                relative_parts = list(page_path.relative_to(path).parts)
-                relative_parts[-1] = relative_parts[-1].removesuffix(
-                    f".{DEFAULT_EXTENSION}"
-                )
-                category = (
-                    " > ".join(relative_parts[:-1]) if len(relative_parts) > 1 else ""
-                )
-                page_name = relative_parts[-1] if relative_parts else ""
                 first_page = False
                 table.add_row(
-                    category,
-                    page_name,
+                    " > ".join(page.categories),
+                    page.name,
                     function.to_string(function_name),
                     function.description,
                 )
