@@ -169,6 +169,7 @@ def serve(
 ) -> None:
     import uvicorn
 
+    # TODO: add warning about no auth if address != 127.0.0.1
     api.book = Robook.from_path(path, filter)
 
     uvicorn.run(api.app, host=address, port=port)
