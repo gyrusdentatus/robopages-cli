@@ -1,0 +1,25 @@
+description: Function to print exported and imported symbols from a binary.
+
+functions:
+  print_exported_symbols_in_file:
+    description: Find the exported symbols in an executable file or a library.
+    parameters:
+      file_path:
+        type: string
+        description: The path to the file to scan.
+        examples:
+          - /path/to/binary
+          - /Applications/Firefox.app/Contents/MacOS/firefox
+
+    # platform specific command lines
+    platform:
+      darwin:
+        - nm
+        - -gU
+        - ${file_path}
+
+      linux:
+        - readelf
+        - -Ws
+        - --dyn-syms
+        - ${file_path}

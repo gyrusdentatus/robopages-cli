@@ -1,0 +1,16 @@
+description: The best reverse engineering tool that's ever been created.
+
+functions:
+  print_strings_in_file:
+    description: Find the printable strings in a file.
+    parameters:
+      file_path:
+        type: string
+        description: The path to the file to scan.
+        examples:
+          - /path/to/binary
+          - /Applications/Firefox.app/Contents/MacOS/firefox
+
+    cmdline:
+      - /usr/bin/strings
+      - ${file_path}
