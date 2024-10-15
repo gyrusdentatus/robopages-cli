@@ -13,7 +13,7 @@ async def run(model: str):
         {
             "role": "user",
             # assumes that examples/robopages/nmap.yml is in ~/.robopages/
-            "content": "Find open ports on 127.0.0.1",
+            "content": "Scan the webserver on https://omniamusic.it/",
         }
     ]
 
@@ -34,7 +34,7 @@ async def run(model: str):
     response = await client.chat(
         model=model,
         messages=messages,
-        tools=robopages.to_ollama(),  # where the magic happens
+        tools=robopages.to_ollama("nikto"),  # where the magic happens
     )
 
     print(response)
@@ -44,7 +44,8 @@ async def run(model: str):
         # execute them in interactive mode
         results = robopages.process(response["message"]["tool_calls"], interactive=True)
         # do whatever you want with the results
-        print(results)
+        for function_name, output in results.items():
+            print(f"[green]{function_name}[/]: {output}")
 
 
 asyncio.run(run("llama3.1"))

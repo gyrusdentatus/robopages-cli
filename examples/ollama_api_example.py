@@ -11,11 +11,11 @@ async def run(model: str):
     messages = [
         {
             "role": "user",
-            "content": "Find open ports on 127.0.0.1",
+            "content": "Scan wordpress on 127.0.0.1",
         }
     ]
 
-    tools = requests.get("http://localhost:8000/offensive").json()
+    tools = requests.get("http://localhost:8000/wpscan").json()
 
     response = await client.chat(
         model=model,
@@ -32,7 +32,7 @@ async def run(model: str):
             "http://localhost:8000/process", json=response["message"]["tool_calls"]
         )
         # do whatever you want with the results
-        print(results)
+        print(results.json())
 
 
 asyncio.run(run("llama3.1"))
