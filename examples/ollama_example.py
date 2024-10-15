@@ -13,7 +13,7 @@ async def run(model: str):
         {
             "role": "user",
             # assumes that examples/robopages/nmap.yml is in ~/.robopages/
-            "content": "Scan the webserver on https://omniamusic.it/",
+            "content": "Scan the webserver on https://example.com/",
         }
     ]
 
@@ -34,7 +34,7 @@ async def run(model: str):
     response = await client.chat(
         model=model,
         messages=messages,
-        tools=robopages.to_ollama("nikto"),  # where the magic happens
+        tools=robopages.to_ollama(),  # where the magic happens
     )
 
     print(response)

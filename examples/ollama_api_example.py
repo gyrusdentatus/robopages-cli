@@ -11,11 +11,11 @@ async def run(model: str):
     messages = [
         {
             "role": "user",
-            "content": "Scan wordpress on 127.0.0.1",
+            "content": "Find vulnerabilities on 127.0.0.1",
         }
     ]
 
-    tools = requests.get("http://localhost:8000/wpscan").json()
+    tools = requests.get("http://localhost:8000/").json()
 
     response = await client.chat(
         model=model,
