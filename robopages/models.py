@@ -28,7 +28,7 @@ class Function(BaseModel):
     parameters: dict[str, Parameter] = {}
     container: Container | None = None
     cmdline: list[str] | None = None
-    platform: dict[str, list[str]] | None = None
+    platforms: dict[str, list[str]] | None = None
 
     def _arg_value(self, arg: str, arguments: dict[str, str]) -> str:
         """Parse interpolated variables with optional default values."""
@@ -59,15 +59,15 @@ class Function(BaseModel):
         return arg
 
     def get_command_line(self, arguments: dict[str, str]) -> list[str]:
-        """Get the command line to execute."""
+        """Get the command line to execute for the provided arguments."""
 
         cmdline = self.cmdline
         if not cmdline:
             # check for platform specific command lines
-            if self.platform:
+            if self.platforms:
                 current_system = platform.system().lower()
-                if current_system in self.platform:
-                    cmdline = self.platform[current_system]
+                if current_system in self.platforms:
+                    cmdline = self.platforms[current_system]
 
         if not cmdline:
             raise Exception("no command line to execute")

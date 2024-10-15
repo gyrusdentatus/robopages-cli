@@ -63,7 +63,6 @@ def view(
     print()
 
     table = Table(box=box.ROUNDED)
-    table.add_column("categories")
     table.add_column("page")
     table.add_column("function")
     table.add_column("description")
@@ -74,14 +73,13 @@ def view(
             if first_page:
                 first_page = False
                 table.add_row(
-                    " > ".join(page.categories),
-                    page.name,
+                    f'[dim]{" > ".join(page.categories)}[/] > {page.name}',
                     function.to_string(function_name),
                     function.description,
                 )
             else:
                 table.add_row(
-                    "", "", function.to_string(function_name), function.description
+                    "", function.to_string(function_name), function.description
                 )
 
     print(table)

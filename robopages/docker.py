@@ -1,7 +1,8 @@
 import os
 
-from robopages import execution
 from robopages.models import Container
+
+# TODO: this is horrible, we should be using the docker python sdk
 
 
 def pull(image: str):
