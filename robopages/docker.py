@@ -11,6 +11,12 @@ def pull(image: str):
     os.system(f"docker images -q '{image}' | grep -q . || docker pull '{image}'")
 
 
+def build(container: Container):
+    """Build a docker image."""
+
+    os.system(f"docker build -f '{container.build}' -t {container.name} .")
+
+
 def dockerize_command_line(
     cmdline: list[str], app_name_idx: int, container: Container
 ) -> list[str]:

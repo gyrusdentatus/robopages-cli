@@ -18,7 +18,8 @@ def resolve_function_call(function: Function, call: Robocall) -> list[str]:
         app_name_idx = 1
         app_name = cmdline[app_name_idx]
 
-    binary = shutil.which(app_name)
+    print("DEBUG: REMOVE ME")
+    binary = None  # shutil.which(app_name)
     if not binary:
         # binary not in $PATH
         if not function.container:
@@ -32,7 +33,19 @@ def resolve_function_call(function: Function, call: Robocall) -> list[str]:
         # TODO: implement build with local Dockerfile
 
         # pull the image if needed
-        docker.pull(function.container.image)
+        if function.container.image:
+            docker.pull(function.container.image)
+        elif function.container.build:
+            docker.build(function.container)
+            # set newly created image name
+            function.container.image = function.container.name
+        else:
+            raise Exception(
+                f"container for function {call.function.name} not found, please set either image or build"
+            )
+
+        # TODO: if command line is dockerized, remove sudo
+
         # create a new command line by replacing the app name
         # with the docker equivalent command line
         cmdline = docker.dockerize_command_line(
