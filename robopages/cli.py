@@ -114,14 +114,13 @@ def to_json(
     ]
     | None = None,
     filter: t.Annotated[
-        str,
+        str | None,
         typer.Option(
             "--filter",
             "-f",
-            help="Filter by this string.",
+            help="Filter results by this string.",
         ),
-    ]
-    | None = None,
+    ] = None,
 ) -> None:
     import json
 
