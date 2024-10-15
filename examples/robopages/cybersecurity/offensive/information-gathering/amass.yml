@@ -18,10 +18,6 @@ functions:
 
     container:
       image: caffix/amass
-      args:
-        - --net=host
-      volumes:
-        - $HOME:/var/amass
 
     cmdline:
       - amass
@@ -31,7 +27,6 @@ functions:
       - 2
       - -d
       - ${target}
-      - -o ${template}_amass.log
 
   amass_intel:
     description: Collect open source intelligence for investigation of the target organization.
@@ -49,10 +44,6 @@ functions:
 
     container:
       image: caffix/amass
-      args:
-        - --net=host
-      volumes:
-        - $HOME:/var/amass
 
     cmdline:
       - amass
@@ -61,4 +52,3 @@ functions:
       - -ip
       - -d
       - ${target}
-      - -o ${template}_amass.log
