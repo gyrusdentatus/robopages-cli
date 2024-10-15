@@ -264,7 +264,11 @@ class Robook(BaseModel):
         function_names = {}
         for robopath in robopaths:
             if not filter or filter in str(robopath):
-                robopage = parse_yaml_raw_as(Robopage, robopath.read_text())
+                text = robopath.read_text()
+                # preprocess any occurrence of ${cwd}
+                text = text.replace("${cwd}", str(robopath.parent.resolve()))
+                # parse into model
+                robopage = parse_yaml_raw_as(Robopage, text)
 
                 # if name is not set, use the file name
                 if not robopage.name:

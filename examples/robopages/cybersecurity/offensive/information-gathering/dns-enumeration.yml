@@ -1,0 +1,30 @@
+description: This page uses Legba for DNS enumeration.
+
+functions:
+  enum_host_subdomains:
+    description: Enumerate subdomains of a target host.
+    parameters:
+      target:
+        type: string
+        description: The hostname to enumerate subdomains for.
+        examples:
+          - example.com
+          - www.example.com
+          - scanme.nmap.org
+
+    container:
+      image: evilsocket/legba
+      args:
+        - --net=host
+      volumes:
+        - ${cwd}:/data
+
+    # as per https://github.com/evilsocket/legba-cookbook/blob/main/dns/enumeration/recipe.yml
+    cmdline:
+      - legba
+      - dns
+      - --payloads=/data/dns-enumeration.txt
+      - --quiet
+      - --dns-ip-lookup
+      - --dns-resolvers="8.8.8.8, 8.8.4.4"
+      - --target=${target}
