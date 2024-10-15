@@ -2,6 +2,7 @@ import pathlib
 import os
 import shutil
 import subprocess
+import re
 
 from pydantic import BaseModel
 from pydantic_yaml import parse_yaml_raw_as, to_yaml_str
@@ -44,6 +45,7 @@ class Function(BaseModel):
                 f"binary {self.cmdline[app_name_idx]} not found in $PATH and container not set"
             )
 
+        # TODO: check if the image is already pulled
         # pull the image
         self.container.pull()
 
@@ -71,15 +73,32 @@ class Function(BaseModel):
         self.cmdline = cmdline
 
     def _arg_value(self, arg: str, arguments: dict[str, str]) -> str:
-        # TODO: add better parsing for multiple interpolations
-        if arg.startswith("${"):
-            arg_name = arg[2:-1]
-            if arg_name in arguments:
-                return arguments[arg_name]
-            else:
-                raise Exception(f"Argument {arg_name} not found")
-        else:
+        """Parse interpolated variables with optional default values."""
+
+        pattern = r"\${(\s*[\w\.]+)\s*(\s+or\s+([^}]+))?}"
+        matches = list(re.finditer(pattern, arg, re.I))
+        if not matches:
             return arg
+
+        for match in matches:
+            expression = match.group(0)
+            var_name = match.group(1).strip()
+            default_value = match.group(3)
+
+            if var_name in arguments:
+                # variable provided as argument
+                replace_with = arguments[var_name]
+            elif default_value is not None:
+                # variable not provided as argument, but with a default value
+                replace_with = default_value.strip()
+            else:
+                raise Exception(
+                    f'variable "${var_name}" not found and no default value provided'
+                )
+
+            arg = arg.replace(expression, replace_with)
+
+        return arg
 
     def get_command_line(self, arguments: dict[str, str]) -> list[str]:
         if not self.cmdline:
