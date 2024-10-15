@@ -1,6 +1,7 @@
 import pathlib
 import os
 import re
+import platform
 
 from pydantic import BaseModel
 from pydantic_yaml import parse_yaml_raw_as, to_yaml_str
@@ -10,7 +11,7 @@ from robopages.defaults import DEFAULT_EXTENSION, DEFAULT_PATH, DEFAULT_PATH_ENV
 
 
 class Parameter(BaseModel):
-    type: str  # TODO: make this a enum
+    type: str
     description: str
     required: bool = True
     examples: list[str] = []
@@ -27,6 +28,7 @@ class Function(BaseModel):
     parameters: dict[str, Parameter] = {}
     container: Container | None = None
     cmdline: list[str] | None = None
+    platform: dict[str, list[str]] | None = None
 
     def _arg_value(self, arg: str, arguments: dict[str, str]) -> str:
         """Parse interpolated variables with optional default values."""
@@ -59,10 +61,18 @@ class Function(BaseModel):
     def get_command_line(self, arguments: dict[str, str]) -> list[str]:
         """Get the command line to execute."""
 
-        if not self.cmdline:
-            raise Exception("No command line to execute")
+        cmdline = self.cmdline
+        if not cmdline:
+            # check for platform specific command lines
+            if self.platform:
+                current_system = platform.system().lower()
+                if current_system in self.platform:
+                    cmdline = self.platform[current_system]
 
-        return [self._arg_value(arg, arguments) for arg in self.cmdline]
+        if not cmdline:
+            raise Exception("no command line to execute")
+
+        return [self._arg_value(arg, arguments) for arg in cmdline]
 
     def to_string(self, name: str) -> str:
         args = []
