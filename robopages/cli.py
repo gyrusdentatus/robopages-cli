@@ -64,12 +64,12 @@ def view(
     print()
 
     table = Table(box=box.ROUNDED)
-    table.add_column("category")
+    table.add_column("categories")
     table.add_column("page")
     table.add_column("function")
     table.add_column("description")
 
-    for page_path, page in book.pages.items():
+    for page in book.pages.values():
         first_page = True
         for function_name, function in page.functions.items():
             if first_page:

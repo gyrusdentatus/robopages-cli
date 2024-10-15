@@ -15,13 +15,13 @@ class Parameter(BaseModel):
     type: str  # TODO: make this a enum
     description: str
     required: bool = True
-    examples: list[str] | None = None
+    examples: list[str] = []
 
 
 class Container(BaseModel):
     image: str
     args: list[str]
-    volumes: list[str]
+    volumes: list[str] = []
 
     def pull(self) -> None:
         print(f":water_wave: pulling container [green]{self.image}[/]\n")
@@ -54,7 +54,7 @@ class Function(BaseModel):
             if idx != app_name_idx:
                 cmdline.append(arg)
             else:
-                cmdline.extend(["docker", "run", "--rm", "-it"])
+                cmdline.extend(["docker", "run", "--rm"])
                 # add volumes if any
                 for volume in self.container.volumes:
                     # expand any environment variable
@@ -271,7 +271,12 @@ class Robook(BaseModel):
                         == "y"
                     ):
                         print(f":robot: [yellow]{' '.join(cmdline)}[/]")
-                        res = subprocess.run(cmdline, capture_output=True, text=True)
+                        res = subprocess.run(
+                            " ".join(cmdline),
+                            capture_output=True,
+                            text=True,
+                            shell=True,
+                        )
                         err = res.stderr.strip()
                         out = res.stdout.strip()
                         output = f"{err}\n{out}" if err else out
