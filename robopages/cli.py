@@ -59,7 +59,7 @@ def view(
         ),
     ] = None,
 ) -> None:
-    book = Robook.from_path(path)
+    book = Robook.from_path(path, filter)
 
     print()
 

@@ -319,16 +319,41 @@ class Robook(BaseModel):
 
         print(f":robot: loading from {path}")
 
+        function_names = {}
         num_functions = 0
         for robopath in robopaths:
             if not filter or filter in str(robopath):
                 robopage = parse_yaml_raw_as(Robopage, robopath.read_text())
-                if robopage.name is None:
+
+                # if name is not set, use the file name
+                if not robopage.name:
                     robopage.name = robopath.stem
 
+                # if categories are not set, use the path
                 if not robopage.categories:
                     relative_parts = list(robopath.relative_to(path).parts)
                     robopage.categories = relative_parts[:-1]
+
+                # make sure function names are unique
+                renames = {}
+                for func_name in robopage.functions.keys():
+                    if func_name in function_names:
+                        new_func_name = f"{robopage.name}_{func_name}"
+                        if new_func_name not in function_names:
+                            print(
+                                f":x: function name [yellow]{func_name}[/] in [blue]{robopath}[/] is not unique, renaming to [green]{new_func_name}[/]"
+                            )
+                            renames[func_name] = new_func_name
+                            func_name = new_func_name
+                        else:
+                            raise Exception(
+                                f"function name {func_name} in {robopath} is not unique"
+                            )
+                    function_names[func_name] = 1
+
+                for old_name, new_name in renames.items():
+                    robopage.functions[new_name] = robopage.functions[old_name]
+                    del robopage.functions[old_name]
 
                 num_functions += len(robopage.functions)
                 # TODO: make sure function names are unique
