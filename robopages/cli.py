@@ -8,7 +8,6 @@ from rich.table import Table
 
 from robopages.defaults import (
     DEFAULT_ADDRESS,
-    DEFAULT_EXTENSION,
     DEFAULT_PAGE_FILE_NAME,
     DEFAULT_PATH,
     DEFAULT_PORT,

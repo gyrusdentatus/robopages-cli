@@ -320,7 +320,6 @@ class Robook(BaseModel):
         print(f":robot: loading from {path}")
 
         function_names = {}
-        num_functions = 0
         for robopath in robopaths:
             if not filter or filter in str(robopath):
                 robopage = parse_yaml_raw_as(Robopage, robopath.read_text())
@@ -355,10 +354,8 @@ class Robook(BaseModel):
                     robopage.functions[new_name] = robopage.functions[old_name]
                     del robopage.functions[old_name]
 
-                num_functions += len(robopage.functions)
-                # TODO: make sure function names are unique
                 robopages[robopath] = robopage
 
-        print(f":book: loaded {num_functions} functions from {path}")
+        print(f":book: loaded {len(function_names)} functions from {path}")
 
         return Robook(pages=robopages)
