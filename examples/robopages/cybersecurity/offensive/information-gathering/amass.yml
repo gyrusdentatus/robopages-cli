@@ -1,0 +1,54 @@
+description: The OWASP Amass Project performs network mapping of attack surfaces and external asset discovery using open source information gathering and active reconnaissance techniques.
+# https://github.com/owasp-amass/amass
+
+functions:
+  amass_enum:
+    description: Perform DNS enumeration and network mapping of systems exposed to the Internet.
+    parameters:
+      target:
+        type: string
+        description: The URL of the target to scan.
+        examples:
+          - https://target.tld
+      template:
+        type: string
+        description: The template to use for scanning.
+        examples:
+          - enum
+
+    container:
+      image: caffix/amass
+
+    cmdline:
+      - amass
+      - ${template}
+      - -brute
+      - -min-for-recursive 
+      - 2
+      - -d
+      - ${target}
+
+  amass_intel:
+    description: Collect open source intelligence for investigation of the target organization.
+    parameters:
+      target:
+        type: string
+        description: The URL of the target to scan.
+        examples:
+          - https://target.tld
+      template:
+        type: string
+        description: The template to use for scanning.
+        examples:
+          - intel
+
+    container:
+      image: caffix/amass
+
+    cmdline:
+      - amass
+      - ${template}
+      - -active
+      - -ip
+      - -d
+      - ${target}
