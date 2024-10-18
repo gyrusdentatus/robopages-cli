@@ -1,5 +1,6 @@
 import pathlib
 import typing as t
+import os
 
 import typer
 from rich import box, print
@@ -11,11 +12,67 @@ from robopages.defaults import (
     DEFAULT_PAGE_FILE_NAME,
     DEFAULT_PATH,
     DEFAULT_PORT,
+    DEFAULT_REPO,
 )
 from robopages.models import FunctionCall, Robocall, Robook, Robopage
 import robopages.api as api
 
 cli = typer.Typer(no_args_is_help=True, help="Man pages but for robots!")
+
+
+@cli.command(help="Install pages from a given repository.")
+def install(
+    repo: t.Annotated[
+        str,
+        typer.Argument(
+            help="Repository user/name, URL or ZIP archive path.",
+        ),
+    ] = DEFAULT_REPO,
+    path: t.Annotated[
+        pathlib.Path,
+        typer.Option(
+            "--path",
+            "-p",
+            help="Destination path.",
+            file_okay=False,
+            resolve_path=True,
+        ),
+    ] = DEFAULT_PATH,
+) -> None:
+    try:
+        if path.exists():
+            print(f":cross_mark: path {path} already exists.")
+            return
+
+        import zipfile
+
+        if ".zip" in repo and os.path.exists(repo):
+            print(f":coffee: extracting to {path} ...")
+            with zipfile.ZipFile(repo, "r") as zip_ref:
+                zip_ref.extractall(path)
+        else:
+            # allow for github shorthand
+            if "://" not in repo:
+                repo = f"https://github.com/{repo}"
+
+            archive_url = f"{repo}/archive/refs/heads/main.zip"
+
+            import httpx
+            import tempfile
+
+            with tempfile.NamedTemporaryFile(delete=True) as tmp_file:
+                print(f":coffee: downloading {archive_url} ...")
+                with httpx.stream("GET", archive_url) as response:
+                    response.raise_for_status()
+                    for chunk in response.iter_bytes():
+                        tmp_file.write(chunk)
+
+                print(f":coffee: extracting to {path} ...")
+                with zipfile.ZipFile(tmp_file.name, "r") as zip_ref:
+                    zip_ref.extractall(path)
+
+    except Exception as e:
+        print(f":cross_mark: {e}")
 
 
 @cli.command(help="Create a new robopage file.")

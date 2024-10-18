@@ -22,6 +22,19 @@ Enter the poetry shell:
 poetry shell
 ```
 
+Install robopages:
+
+```bash
+# install https://github.com/dreadnode/robopages to ~/.robopages/robopages-main
+robopages install 
+
+# install a custom repository
+robopages install user/repo
+
+# install from a local archive
+robopages install /path/to/archive.zip
+```
+
 View installed robopages:
 
 ```bash
