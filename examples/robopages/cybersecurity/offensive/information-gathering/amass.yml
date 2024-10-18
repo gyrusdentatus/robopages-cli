@@ -1,5 +1,4 @@
 description: The OWASP Amass Project performs network mapping of attack surfaces and external asset discovery using open source information gathering and active reconnaissance techniques.
-# https://github.com/owasp-amass/amass
 
 functions:
   amass_enum:
@@ -10,21 +9,16 @@ functions:
         description: The URL of the target to scan.
         examples:
           - https://target.tld
-      template:
-        type: string
-        description: The template to use for scanning.
-        examples:
-          - enum
 
     container:
       image: caffix/amass
 
     cmdline:
       - amass
-      - ${template}
+      - enum
       - -brute
       - -min-for-recursive 
-      - 2
+      - '2'
       - -d
       - ${target}
 
@@ -36,18 +30,13 @@ functions:
         description: The URL of the target to scan.
         examples:
           - https://target.tld
-      template:
-        type: string
-        description: The template to use for scanning.
-        examples:
-          - intel
 
     container:
       image: caffix/amass
 
     cmdline:
       - amass
-      - ${template}
+      - intel
       - -active
       - -ip
       - -d
