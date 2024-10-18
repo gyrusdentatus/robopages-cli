@@ -46,6 +46,12 @@ Start the REST API:
 robopages serve
 ```
 
+Execute a function manually without user interaction:
+
+```bash
+robopages run nikto_scan --auto
+```
+
 ### Robopage
 
 A robopage is a YAML file describing one or more tools that can be used by an LLM.
