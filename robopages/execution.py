@@ -30,8 +30,6 @@ def resolve_function_call(function: Function, call: Robocall) -> list[str]:
 
         from robopages import docker
 
-        # TODO: implement build with local Dockerfile
-
         # pull the image if needed
         if function.container.image:
             docker.pull(function.container.image)
