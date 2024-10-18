@@ -12,7 +12,7 @@ from robopages.defaults import (
     DEFAULT_PATH,
     DEFAULT_PORT,
 )
-from robopages.models import Robook, Robopage
+from robopages.models import FunctionCall, Robocall, Robook, Robopage
 import robopages.api as api
 
 cli = typer.Typer(no_args_is_help=True, help="Man pages but for robots!")
@@ -177,3 +177,52 @@ def serve(
         )
 
     uvicorn.run(api.app, host=address, port=port)
+
+
+@cli.command(help="Execute a function from the robopages.")
+def run(
+    path: t.Annotated[
+        pathlib.Path,
+        typer.Option(
+            "--path",
+            "-p",
+            help="Robopage or directory containing multiple robopages.",
+            file_okay=True,
+            resolve_path=True,
+        ),
+    ] = DEFAULT_PATH,
+    auto: t.Annotated[
+        bool,
+        typer.Option(
+            "--auto",
+            help="Execute the function without user interaction.",
+        ),
+    ] = False,
+    function_name: str = typer.Argument(
+        help="Name of the function to execute.",
+    ),
+) -> None:
+    try:
+        book = Robook.from_path(path)
+        function = book.find_function(function_name)
+        if not function:
+            raise Exception(f"function {function_name} not found")
+
+        arguments = {}
+
+        if function.parameters:
+            print()
+
+        for param_name, parameter in function.parameters.items():
+            while True:
+                value = Prompt.ask(f"Enter value for [yellow]${{{param_name}}}[/]")
+                if value:
+                    arguments[param_name] = value
+                    break
+                elif not parameter.required:
+                    break
+
+        call = Robocall(function=FunctionCall(name=function_name, arguments=arguments))
+        print(book.process([call], interactive=not auto))
+    except Exception as e:
+        print(f":cross_mark: {e}")

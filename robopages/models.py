@@ -220,6 +220,15 @@ class Robook(BaseModel):
             for (func_name, func) in page.functions.items()
         ]
 
+    def find_function(self, name: str) -> Function | None:
+        """Find a function by name."""
+
+        for page in self.pages.values():
+            if name in page.functions:
+                return page.functions[name]
+
+        return None
+
     def process(
         self, calls: list[dict | Robocall], interactive: bool = True
     ) -> dict[str, str]:
@@ -232,17 +241,11 @@ class Robook(BaseModel):
         for call in [
             Robocall(**call) if isinstance(call, dict) else call for call in calls
         ]:
-            output = None
-            for page in self.pages.values():
-                if call.function.name in page.functions:
-                    function = page.functions[call.function.name]
-                    output = execution.execute(call, function, interactive)
-                    break
-
-            if output is None:
+            function = self.find_function(call.function.name)
+            if not function:
                 raise Exception(f"Function {call.function.name} not found")
-            else:
-                results[call.function.name] = output
+
+            results[call.function.name] = execution.execute(call, function, interactive)
 
         return results
 

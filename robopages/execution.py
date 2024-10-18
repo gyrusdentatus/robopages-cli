@@ -18,8 +18,7 @@ def resolve_function_call(function: Function, call: Robocall) -> list[str]:
         app_name_idx = 1
         app_name = cmdline[app_name_idx]
 
-    print("DEBUG: REMOVE ME")
-    binary = None  # shutil.which(app_name)
+    binary = shutil.which(app_name)
     if not binary:
         # binary not in $PATH
         if not function.container:
