@@ -21,7 +21,7 @@ class Container(BaseModel):
     image: str | None = None
     name: str | None = None
     build: str | None = None
-    args: list[str]
+    args: list[str] = []
     volumes: list[str] = []
 
 
