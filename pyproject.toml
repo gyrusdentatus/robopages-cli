@@ -16,6 +16,7 @@ rigging = "^2.0.5"
 fastapi = "^0.115.2"
 uvicorn = "^0.31.1"
 httpx = "^0.27.2"
+docker = "^7.1.0"
 
 
 [build-system]
