@@ -1,0 +1,25 @@
+[package]
+name = "robopages"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4.9.0"
+actix-web-lab = "0.23.0"
+anyhow = "1.0.90"
+camino = { version = "1.1.9", features = ["serde"] }
+clap = { version = "4.5.20", features = ["derive"] }
+comfy-table = "7.1.1"
+env_logger = "0.11.5"
+glob = "0.3.1"
+lazy-regex = "3.3.0"
+log = "0.4.22"
+regex = "1.11.0"
+reqwest = "0.12.8"
+serde = { version = "1.0.211", features = ["derive"] }
+serde_yaml = "0.9.34"
+shellexpand = { version = "3.1.0", features = ["full"] }
+tempfile = "3.13.0"
+tokio = { version = "1.41.0", features = ["full"] }
+which = "6.0.3"
+zip = "2.2.0"

@@ -4,9 +4,7 @@ CLI for https://github.com/dreadnode/robopages
 
 ## Installation
 
-```bash
-poetry install 
-```
+TODO: Add new installation instructions
 
 Pages are loaded by default from the `~/.robopages/` directory (or any folder set in the `ROBOPAGES_PATH` environment variable), see the `https://github.com/dreadnode/robopages` repository for examples.
 
@@ -16,12 +14,6 @@ This project consists of a CLI for creating, viewing and serving robopages as a 
 
 ### CLI
 
-Enter the poetry shell:
-
-```bash
-poetry shell
-```
-
 Install robopages:
 
 ```bash
@@ -29,10 +21,10 @@ Install robopages:
 robopages install 
 
 # install a custom repository
-robopages install user/repo
+robopages install --source user/repo
 
 # install from a local archive
-robopages install /path/to/archive.zip
+robopages install --source /path/to/archive.zip
 ```
 
 View installed robopages:
@@ -44,13 +36,7 @@ robopages view
 Create a robopage:
 
 ```bash
-robopages create my_first_page.yml
-```
-
-Convert to OpenAI compatible tools:
-
-```bash
-robopages to-json --path ./examples/robopages
+robopages create --name my_first_page.yml
 ```
 
 Start the REST API:
@@ -62,7 +48,7 @@ robopages serve
 Execute a function manually without user interaction:
 
 ```bash
-robopages run nikto_scan --auto
+robopages run --function nikto_scan --auto
 ```
 
 ### SDK

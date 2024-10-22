@@ -1,0 +1,7 @@
+/.github
+/.vscode
+/examples
+/target
+/assets
+/docs
+.mypy_cache
