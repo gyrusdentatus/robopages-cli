@@ -76,7 +76,11 @@ robopages create --name my_first_page.yml
 Start the REST API:
 
 ```bash
+# this will pre build and pull all containers
 robopages serve
+
+# this will build or pull containers on demand
+robopages serve --lazy
 ```
 
 Execute a function manually without user interaction:

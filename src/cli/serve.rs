@@ -47,6 +47,7 @@ pub(crate) async fn serve(
     path: Utf8PathBuf,
     filter: Option<String>,
     address: String,
+    lazy: bool,
     workers: usize,
 ) -> anyhow::Result<()> {
     if !address.contains("127.0.0.1:") && !address.contains("localhost:") {
@@ -60,6 +61,17 @@ pub(crate) async fn serve(
     };
 
     let book = Arc::new(Book::from_path(path, filter)?);
+
+    if !lazy {
+        for page in book.pages.values() {
+            for (func_name, func) in page.functions.iter() {
+                if let Some(container) = &func.container {
+                    log::info!("pre building container for function {} ...", func_name);
+                    container.source.resolve().await?;
+                }
+            }
+        }
+    }
 
     log::info!(
         "serving {} pages on http://{address} with {workers} workers",

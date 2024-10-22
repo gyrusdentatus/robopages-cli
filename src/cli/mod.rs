@@ -13,6 +13,9 @@ pub(crate) use run::*;
 pub(crate) use serve::*;
 pub(crate) use view::*;
 
+const DEFAULT_REPO: &str = "dreadnode/robopages";
+const DEFAULT_PATH: &str = "~/.robopages/";
+
 #[derive(Debug, Parser)]
 #[clap(name = "robopages", version)]
 pub(crate) struct Args {
@@ -29,10 +32,10 @@ pub(crate) enum Command {
     /// Install robopages from a given repository or ZIP archive.
     Install {
         /// Repository user/name, URL or ZIP archive path.
-        #[clap(long, short = 'S', default_value = "dreadnode/robopages")]
+        #[clap(long, short = 'S', default_value = DEFAULT_REPO)]
         source: String,
         /// Destination path.
-        #[clap(long, short = 'P', default_value = "~/.robopages/")]
+        #[clap(long, short = 'P', default_value = DEFAULT_PATH)]
         path: Utf8PathBuf,
     },
     /// Create a new robopage file.
@@ -44,7 +47,7 @@ pub(crate) enum Command {
     /// View currently installed robopages.
     View {
         /// Base path to search for robopages.
-        #[clap(long, short = 'P', default_value = "~/.robopages/")]
+        #[clap(long, short = 'P', default_value = DEFAULT_PATH)]
         path: Utf8PathBuf,
         /// Filter results by this string.
         #[clap(long, short = 'F')]
@@ -53,7 +56,7 @@ pub(crate) enum Command {
     /// Serve the robopages as a local API.
     Serve {
         /// Base path to search for robopages.
-        #[clap(long, short = 'P', default_value = "~/.robopages/")]
+        #[clap(long, short = 'P', default_value = DEFAULT_PATH)]
         path: Utf8PathBuf,
         /// Filter results by this string.
         #[clap(long, short = 'F')]
@@ -61,11 +64,14 @@ pub(crate) enum Command {
         /// Address to bind to.
         #[clap(long, short = 'A', default_value = "127.0.0.1:8000")]
         address: String,
+        /// If set, the tool will not attempt to pre build and pull all containers.
+        #[clap(long)]
+        lazy: bool,
     },
     /// Execute a function from the robopages.
     Run {
         /// Base path to search for robopages.
-        #[clap(long, short = 'P', default_value = "~/.robopages/")]
+        #[clap(long, short = 'P', default_value = DEFAULT_PATH)]
         path: Utf8PathBuf,
         /// Function name.
         #[clap(long, short = 'F')]

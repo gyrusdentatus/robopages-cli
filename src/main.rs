@@ -23,8 +23,6 @@ async fn main() -> anyhow::Result<()> {
         .format_target(false)
         .init();
 
-    // TODO: go over pages and pre build and pull all containers
-
     let result = match args.command {
         cli::Command::Install { source, path } => cli::install(source, path).await,
         cli::Command::Create { name } => cli::create(name).await,
@@ -33,7 +31,8 @@ async fn main() -> anyhow::Result<()> {
             path,
             filter,
             address,
-        } => cli::serve(path, filter, address, args.workers).await,
+            lazy,
+        } => cli::serve(path, filter, address, lazy, args.workers).await,
         cli::Command::Run {
             path,
             function,
