@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use actix_cors::Cors;
+use actix_web::http::header;
 use actix_web::web;
 use actix_web::App;
 use actix_web::HttpRequest;
@@ -64,11 +66,12 @@ pub(crate) async fn serve(
         book.size(),
     );
 
-    // TODO: !!! CORS !!!
-    // TODO: add minimal web ui!
-    // TODO: add openapi docs
+    // TODO: add minimal web ui
     HttpServer::new(move || {
+        let cors = Cors::default().max_age(3600);
+
         App::new()
+            .wrap(cors)
             .app_data(web::Data::new(book.clone()))
             .route("/process", web::post().to(process_calls))
             // TODO: is this is the best way to do this? can't find a clean way to have an optional path parameter
