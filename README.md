@@ -2,11 +2,45 @@
 
 CLI for https://github.com/dreadnode/robopages
 
-## Installation
-
-TODO: Add new installation instructions
-
 Pages are loaded by default from the `~/.robopages/` directory (or any folder set in the `ROBOPAGES_PATH` environment variable), see the `https://github.com/dreadnode/robopages` repository for examples.
+
+
+## Build Docker image
+
+To build the Docker image for the tool, run:
+
+```bash
+docker build . -t robopages  
+```
+
+## Build from source
+
+
+Alternatively you can build the project from source, in which case you'll need to have Rust and Cargo [installed on your system](https://rustup.rs/).
+
+Once you have those set up, clone the repository:
+
+```bash
+git clone https://github.com/dreadnode/robopages-cli.git
+cd robopages-cli
+```
+
+Build the project:
+
+```bash
+cargo build --release
+```
+
+The compiled binary will be available in the `target/release` directory. You can run it directly or add it to your system's PATH:
+
+```bash
+# Run directly
+./target/release/robopages
+
+# Or, copy to a directory in your PATH (e.g., /usr/local/bin)
+sudo cp target/release/robopages /usr/local/bin/
+```
+
 
 ## Usage
 
