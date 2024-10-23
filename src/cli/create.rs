@@ -16,7 +16,7 @@ pub(crate) async fn create(template: Template, name: Utf8PathBuf) -> anyhow::Res
         } else {
             log::info!("creating {:?} from template {}", name, template.to_string());
 
-            std::fs::write(name.to_string(), parts.data)?;
+            std::fs::write(&name, parts.data)?;
         }
     }
 

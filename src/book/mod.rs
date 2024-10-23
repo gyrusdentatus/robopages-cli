@@ -139,7 +139,7 @@ impl Page {
         let path = path.canonicalize_utf8()?;
         let base_path = path.parent().unwrap();
 
-        Ok(text.replace("${cwd}", &base_path.to_string()))
+        Ok(text.replace("${cwd}", base_path.as_ref()))
     }
 
     pub fn from_path(path: &Utf8PathBuf) -> anyhow::Result<Self> {

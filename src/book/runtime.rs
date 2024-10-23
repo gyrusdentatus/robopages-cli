@@ -14,6 +14,102 @@ static ARG_VALUE_PARSER: Lazy<Regex> = lazy_regex!(r"(?m)\$\{\s*([\w\.]+)(\s+or\
 const ARG_EXPRESSION_ERROR: &str =
     "argument expression must be in the form of ${name} or ${name or default_value}";
 
+pub enum ExecutionFlavor {
+    Shell(String),
+    Sudo,
+    Docker(String),
+    Error(String),
+}
+
+impl ExecutionFlavor {
+    pub fn shell(shell: String) -> Self {
+        ExecutionFlavor::Shell(shell)
+    }
+
+    pub fn sudo() -> Self {
+        ExecutionFlavor::Sudo
+    }
+
+    pub fn docker(image: String) -> Self {
+        ExecutionFlavor::Docker(image)
+    }
+
+    pub fn error(message: String) -> Self {
+        ExecutionFlavor::Error(message)
+    }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            Self::Shell(shell) => shell.to_string(),
+            Self::Sudo => "sudo".to_string(),
+            Self::Docker(image) => "docker".to_string(),
+            Self::Error(message) => message.to_string(),
+        }
+    }
+
+    fn get_current_shell() -> String {
+        let shell_name = std::env::var("SHELL")
+            .map(|s| s.split('/').last().unwrap_or("unknown").to_string())
+            .unwrap_or_else(|_| "unknown".to_string());
+
+        if let Ok(shell_path) = which::which(shell_name.clone()) {
+            shell_path.to_string_lossy().to_string()
+        } else {
+            shell_name
+        }
+    }
+
+    pub fn for_function(function: &Function) -> anyhow::Result<ExecutionFlavor> {
+        let mut has_container = false;
+        if let Some(container) = function.container.as_ref() {
+            has_container = true;
+            if container.force {
+                return Ok(ExecutionFlavor::docker(
+                    container.source.image().to_string(),
+                ));
+            }
+        }
+
+        match function.execution.get_command_line() {
+            Ok(raw_parts) => {
+                let cmdline = CommandLine::from_vec(&raw_parts)?;
+                if cmdline.sudo {
+                    return Ok(if has_container {
+                        ExecutionFlavor::docker(
+                            function
+                                .container
+                                .as_ref()
+                                .unwrap()
+                                .source
+                                .image()
+                                .to_string(),
+                        )
+                    } else {
+                        ExecutionFlavor::sudo()
+                    });
+                } else if !cmdline.app_in_path {
+                    return Ok(if has_container {
+                        ExecutionFlavor::docker(
+                            function
+                                .container
+                                .as_ref()
+                                .unwrap()
+                                .source
+                                .image()
+                                .to_string(),
+                        )
+                    } else {
+                        ExecutionFlavor::error("app not in $PATH".to_string())
+                    });
+                } else {
+                    return Ok(ExecutionFlavor::shell(Self::get_current_shell()));
+                }
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ExecutionContext {
     #[serde(rename = "cmdline")]
