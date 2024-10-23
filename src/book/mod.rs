@@ -53,6 +53,9 @@ pub struct Container {
     #[serde(default = "default_force")]
     #[serde(skip_serializing_if = "is_false")]
     pub force: bool,
+    #[serde(default = "default_preserve_app")]
+    #[serde(skip_serializing_if = "is_false")]
+    pub preserve_app: bool,
 }
 
 fn is_false(b: &bool) -> bool {
@@ -60,6 +63,10 @@ fn is_false(b: &bool) -> bool {
 }
 
 fn default_force() -> bool {
+    false
+}
+
+fn default_preserve_app() -> bool {
     false
 }
 
@@ -89,6 +96,11 @@ impl Container {
 
         // add image
         dockerized.args.push(self.source.image().to_string());
+
+        if self.preserve_app {
+            // add the original app to the args
+            dockerized.args.push(cmdline.app.clone());
+        }
 
         // add the original arguments
         dockerized.args.extend(cmdline.args);
@@ -345,6 +357,49 @@ mod tests {
         let book = create_test_book();
         let tools = book.as_tools(Some("non_existing_page".to_string()));
         assert_eq!(tools.len(), 0);
+    }
+
+    #[test]
+    fn test_container_preserve_app() {
+        let container = Container {
+            source: ContainerSource::Image("test_image".to_string()),
+            args: None,
+            volumes: None,
+            force: false,
+            preserve_app: true,
+        };
+
+        let original_cmdline = CommandLine {
+            sudo: false,
+            app: "original_app".to_string(),
+            app_in_path: true,
+            args: vec!["arg1".to_string(), "arg2".to_string()],
+        };
+
+        let wrapped_cmdline = container.wrap(original_cmdline).unwrap();
+
+        assert!(wrapped_cmdline.args.contains(&"original_app".to_string()));
+        assert!(wrapped_cmdline.args.contains(&"arg1".to_string()));
+        assert!(wrapped_cmdline.args.contains(&"arg2".to_string()));
+
+        // check that the original app is inserted before its arguments
+        let app_index = wrapped_cmdline
+            .args
+            .iter()
+            .position(|arg| arg == "original_app")
+            .unwrap();
+        let arg1_index = wrapped_cmdline
+            .args
+            .iter()
+            .position(|arg| arg == "arg1")
+            .unwrap();
+        let arg2_index = wrapped_cmdline
+            .args
+            .iter()
+            .position(|arg| arg == "arg2")
+            .unwrap();
+        assert!(app_index < arg1_index);
+        assert!(app_index < arg2_index);
     }
 
     #[test]
