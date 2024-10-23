@@ -15,7 +15,7 @@ async fn main() -> anyhow::Result<()> {
     if std::env::var_os("RUST_LOG").is_none() {
         // set `RUST_LOG=debug` to see debug logs
         // NOTE: actix_server is waaaay too verbose at the info level -.-
-        std::env::set_var("RUST_LOG", "info,actix_server");
+        std::env::set_var("RUST_LOG", "info,actix_server=warn");
     }
 
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
