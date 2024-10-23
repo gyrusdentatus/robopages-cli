@@ -8,6 +8,7 @@ use crate::runtime::{CommandLine, ContainerSource};
 
 pub(crate) mod openai;
 pub(crate) mod runtime;
+pub(crate) mod templates;
 
 macro_rules! eval_if_in_filter {
     ($path:expr, $filter:expr, $action:expr) => {
@@ -123,9 +124,10 @@ pub struct Page {
 
 impl Page {
     fn preprocess(path: &Utf8PathBuf, text: String) -> anyhow::Result<String> {
-        let base_path = path.parent().unwrap().to_string();
+        let path = path.canonicalize_utf8()?;
+        let base_path = path.parent().unwrap();
 
-        Ok(text.replace("${cwd}", &base_path))
+        Ok(text.replace("${cwd}", &base_path.to_string()))
     }
 
     pub fn from_path(path: &Utf8PathBuf) -> anyhow::Result<Self> {
