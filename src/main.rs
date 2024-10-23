@@ -32,7 +32,8 @@ async fn main() -> anyhow::Result<()> {
             filter,
             address,
             lazy,
-        } => cli::serve(path, filter, address, lazy, args.workers).await,
+            workers,
+        } => cli::serve(path, filter, address, lazy, workers).await,
         cli::Command::Run {
             path,
             function,

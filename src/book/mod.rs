@@ -55,7 +55,7 @@ pub struct Container {
 }
 
 fn is_false(b: &bool) -> bool {
-    *b == false
+    !(*b)
 }
 
 fn default_force() -> bool {
@@ -97,7 +97,6 @@ impl Container {
 }
 
 // TODO: add optional parsers to reduce output tokens
-// TODO: add python functions support
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Function {
@@ -131,7 +130,7 @@ impl Page {
 
     pub fn from_path(path: &Utf8PathBuf) -> anyhow::Result<Self> {
         let text = std::fs::read_to_string(path)?;
-        let text = Self::preprocess(&path, text)?;
+        let text = Self::preprocess(path, text)?;
         let page = serde_yaml::from_str(&text)?;
         Ok(page)
     }

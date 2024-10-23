@@ -17,7 +17,6 @@ impl CommandLine {
         let mut sudo = false;
         let mut app = String::new();
         let mut args = Vec::new();
-        let mut app_in_path = false;
 
         for arg in vec {
             if arg == "sudo" {
@@ -36,12 +35,12 @@ impl CommandLine {
             ));
         }
 
-        if let Ok(path) = which::which(&app) {
-            app_in_path = true;
+        let app_in_path = if let Ok(path) = which::which(&app) {
             app = path.to_string_lossy().to_string();
+            true
         } else {
-            app_in_path = false;
-        }
+            false
+        };
 
         Ok(Self {
             sudo,

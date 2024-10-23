@@ -12,31 +12,36 @@ use crate::book::openai;
 use crate::book::Book;
 use crate::runtime;
 
+struct AppState {
+    max_running_tasks: usize,
+    book: Arc<Book>,
+}
+
 async fn not_found() -> actix_web::Result<HttpResponse> {
     Ok(HttpResponse::NotFound().body("nope"))
 }
 
 async fn serve_pages_with_filter(
-    book: web::Data<Arc<Book>>,
+    state: web::Data<Arc<AppState>>,
     _: HttpRequest,
     actix_web_lab::extract::Path((filter,)): actix_web_lab::extract::Path<(String,)>,
 ) -> actix_web::Result<HttpResponse> {
-    Ok(HttpResponse::Ok().json(book.as_tools(Some(filter))))
+    Ok(HttpResponse::Ok().json(state.book.as_tools(Some(filter))))
 }
 
 async fn serve_pages(
-    book: web::Data<Arc<Book>>,
+    state: web::Data<Arc<AppState>>,
     _: HttpRequest,
 ) -> actix_web::Result<HttpResponse> {
-    Ok(HttpResponse::Ok().json(book.as_tools(None)))
+    Ok(HttpResponse::Ok().json(state.book.as_tools(None)))
 }
 
 async fn process_calls(
-    book: web::Data<Arc<Book>>,
+    state: web::Data<Arc<AppState>>,
     _: HttpRequest,
     calls: web::Json<Vec<openai::Call>>,
 ) -> actix_web::Result<HttpResponse> {
-    match runtime::execute(false, book.get_ref().clone(), calls.0).await {
+    match runtime::execute(false, state.book.clone(), calls.0, state.max_running_tasks).await {
         Ok(resp) => Ok(HttpResponse::Ok().json(resp)),
         Err(e) => Err(actix_web::error::ErrorBadRequest(e)),
     }
@@ -47,20 +52,13 @@ pub(crate) async fn serve(
     filter: Option<String>,
     address: String,
     lazy: bool,
-    workers: usize,
+    max_running_tasks: usize,
 ) -> anyhow::Result<()> {
     if !address.contains("127.0.0.1:") && !address.contains("localhost:") {
         log::warn!("external address specified, this is an unsafe configuration as no authentication is provided");
     }
 
-    let workers = if workers == 0 {
-        std::thread::available_parallelism()?.into()
-    } else {
-        workers
-    };
-
     let book = Arc::new(Book::from_path(path, filter)?);
-
     if !lazy {
         for page in book.pages.values() {
             for (func_name, func) in page.functions.iter() {
@@ -72,10 +70,21 @@ pub(crate) async fn serve(
         }
     }
 
+    let max_running_tasks = if max_running_tasks == 0 {
+        std::thread::available_parallelism()?.into()
+    } else {
+        max_running_tasks
+    };
+
     log::info!(
-        "serving {} pages on http://{address} with {workers} workers",
+        "serving {} pages on http://{address} with {max_running_tasks} max running tasks",
         book.size(),
     );
+
+    let app_state = Arc::new(AppState {
+        max_running_tasks,
+        book,
+    });
 
     // TODO: add minimal web ui
     HttpServer::new(move || {
@@ -83,7 +92,7 @@ pub(crate) async fn serve(
 
         App::new()
             .wrap(cors)
-            .app_data(web::Data::new(book.clone()))
+            .app_data(web::Data::new(app_state.clone()))
             .route("/process", web::post().to(process_calls))
             // TODO: is this is the best way to do this? can't find a clean way to have an optional path parameter
             .service(web::resource("/{filter}").route(web::get().to(serve_pages_with_filter)))
@@ -93,7 +102,6 @@ pub(crate) async fn serve(
     })
     .bind(&address)
     .map_err(|e| anyhow!(e))?
-    .workers(workers)
     .run()
     .await
     .map_err(|e| anyhow!(e))

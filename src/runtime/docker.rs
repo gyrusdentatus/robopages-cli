@@ -1,10 +1,35 @@
 use std::{path::PathBuf, process::Stdio};
 
+use serde::{Deserialize, Serialize};
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
     process::Command,
     task,
 };
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ContainerSource {
+    #[serde(rename = "image")]
+    Image(String),
+    #[serde(rename = "build")]
+    Build { name: String, path: String },
+}
+
+impl ContainerSource {
+    pub async fn resolve(&self) -> anyhow::Result<()> {
+        match self {
+            Self::Image(image) => pull_image(image).await,
+            Self::Build { name, path } => build_image(name, path).await,
+        }
+    }
+
+    pub fn image(&self) -> &str {
+        match self {
+            Self::Image(image) => image,
+            Self::Build { name, .. } => name,
+        }
+    }
+}
 
 async fn run_command(command: &str, args: &[&str]) -> anyhow::Result<()> {
     let mut child = Command::new(command)

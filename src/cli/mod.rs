@@ -19,10 +19,6 @@ const DEFAULT_PATH: &str = "~/.robopages/";
 #[derive(Debug, Parser)]
 #[clap(name = "robopages", version)]
 pub(crate) struct Args {
-    /// Maximum number of parallel calls to execute. Leave to 0 to use all available cores.
-    #[clap(long, default_value = "0")]
-    pub(crate) workers: usize,
-
     #[clap(subcommand)]
     pub command: Command,
 }
@@ -67,6 +63,9 @@ pub(crate) enum Command {
         /// If set, the tool will not attempt to pre build and pull all containers.
         #[clap(long)]
         lazy: bool,
+        /// Maximum number of parallel calls to execute. Leave to 0 to use all available cores.
+        #[clap(long, default_value = "0")]
+        workers: usize,
     },
     /// Execute a function from the robopages.
     Run {

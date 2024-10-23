@@ -40,6 +40,7 @@ impl ExecutionContext {
     }
 }
 
+#[allow(dead_code)] // we might need path and page in the future
 #[derive(Debug)]
 pub struct FunctionRef<'a> {
     pub name: String,
