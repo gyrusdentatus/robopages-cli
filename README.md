@@ -94,6 +94,18 @@ Execute a function manually without user interaction:
 robopages run --function nikto_scan --auto
 ```
 
+You can also define variables to be used in the function call:
+
+```bash
+robopages run -F httpx_tech_detect -A --define target=www.example.com
+```
+
+Repeat for multiple variables:
+
+```bash
+robopages run -F function_name -A -D target=www.example.com -D foo=bar
+```
+
 ### SDK
 
 Use with OLLAMA (or any OpenAI function calling schema compatible client and model) via the REST API:

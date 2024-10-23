@@ -37,8 +37,9 @@ async fn main() -> anyhow::Result<()> {
         cli::Command::Run {
             path,
             function,
+            defines,
             auto,
-        } => cli::run(path, function, auto).await,
+        } => cli::run(path, function, defines, auto).await,
     };
 
     if let Err(e) = result {
