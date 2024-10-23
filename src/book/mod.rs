@@ -256,6 +256,7 @@ impl Book {
         Err(anyhow::anyhow!("function {} not found", name))
     }
 
+    // TODO: add support for different flavors? https://github.com/groq/groq-api-cookbook/blob/main/tutorials/function-calling-101-ecommerce/Function-Calling-101-Ecommerce.ipynb
     pub fn as_tools(&self, filter: Option<String>) -> Vec<openai::Tool> {
         let mut tools = Vec::new();
 

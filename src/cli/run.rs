@@ -24,7 +24,7 @@ pub(crate) async fn run(path: Utf8PathBuf, func_name: String, auto: bool) -> any
     }
 
     let call = openai::Call {
-        id: "<not set>".to_string(),
+        id: None,
         function: openai::FunctionCall {
             name: func_name,
             arguments,

@@ -86,7 +86,7 @@ type CallId = String;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct Call {
-    pub id: CallId,
+    pub id: Option<CallId>,
     #[serde(rename = "type")]
     #[serde(default = "default_call_type")]
     pub call_type: String,
@@ -101,7 +101,7 @@ fn default_call_type() -> String {
 pub(crate) struct CallResultMessage {
     #[serde(default = "default_result_message_role")]
     pub role: String,
-    pub call_id: CallId,
+    pub call_id: Option<CallId>,
     pub content: String,
 }
 

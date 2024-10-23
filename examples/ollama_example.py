@@ -11,16 +11,15 @@ async def run(model: str):
     messages = [
         {
             "role": "user",
-            "content": "Find vulnerabilities on 127.0.0.1",
+            "content": "Find open ports on 127.0.0.1",
         }
     ]
-
-    tools = requests.get("http://localhost:8000/").json()
 
     response = await client.chat(
         model=model,
         messages=messages,
-        tools=tools,
+        # get the tools from the Robopages server
+        tools=requests.get("http://localhost:8000/").json(),
     )
 
     print(response)
@@ -31,6 +30,7 @@ async def run(model: str):
         results = requests.post(
             "http://localhost:8000/process", json=response["message"]["tool_calls"]
         )
+        results.raise_for_status()
         # do whatever you want with the results
         print(results.json())
 
