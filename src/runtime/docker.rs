@@ -1,4 +1,7 @@
-use std::{path::PathBuf, process::Stdio};
+use std::{
+    path::{Path, PathBuf},
+    process::Stdio,
+};
 
 use serde::{Deserialize, Serialize};
 use tokio::{
@@ -95,9 +98,9 @@ pub(crate) async fn build_image(name: &str, path: &str) -> anyhow::Result<()> {
         &[
             "-c",
             &format!(
-                // TODO: check if using '.' is correct in this case
-                "docker build -f '{}' -t '{name}' --quiet .",
-                dockerfile.display()
+                "docker build -f '{}' -t '{name}' --quiet '{}'",
+                dockerfile.display(),
+                dockerfile.parent().unwrap_or(Path::new(".")).display(),
             ),
         ],
     )

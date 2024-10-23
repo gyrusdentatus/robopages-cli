@@ -57,7 +57,7 @@ impl From<&super::Page> for Vec<Tool> {
                     }
                 }
 
-                // TODO: check if we can add examples
+                // NOTE: it'd be nice if we could add examples
 
                 Tool {
                     tool_type: "function".to_string(),
