@@ -123,3 +123,170 @@ impl<'a> FunctionRef<'a> {
         CommandLine::from_vec(&command_line)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn test_resolve_command_line_with_valid_arguments() {
+        let function = Function {
+            execution: ExecutionContext::CommandLine(vec![
+                "echo".to_string(),
+                "${message}".to_string(),
+            ]),
+            description: "".to_string(),
+            parameters: BTreeMap::new(),
+            container: None,
+        };
+        let resolver = FunctionRef {
+            function: &function,
+            name: "test_function".to_string(),
+            path: &Utf8PathBuf::from("test/path"),
+            page: &Page {
+                name: "test_page".to_string(),
+                description: None,
+                categories: Vec::new(),
+                functions: BTreeMap::new(),
+            },
+        };
+        let mut arguments = BTreeMap::new();
+        arguments.insert("message".to_string(), "Hello, World!".to_string());
+
+        let result = resolver.resolve_command_line(&arguments);
+        assert!(result.is_ok());
+        let command_line = result.unwrap();
+        assert_eq!(command_line.app, "/bin/echo");
+        assert_eq!(command_line.args, vec!["Hello, World!"]);
+    }
+
+    #[test]
+    fn test_resolve_command_line_with_default_value() {
+        let function = Function {
+            execution: ExecutionContext::CommandLine(vec![
+                "echo".to_string(),
+                "${message or Default message}".to_string(),
+            ]),
+            description: "".to_string(),
+            parameters: BTreeMap::new(),
+            container: None,
+        };
+        let resolver = FunctionRef {
+            function: &function,
+            name: "test_function".to_string(),
+            path: &Utf8PathBuf::from("test/path"),
+            page: &Page {
+                name: "test_page".to_string(),
+                description: None,
+                categories: Vec::new(),
+                functions: BTreeMap::new(),
+            },
+        };
+        let arguments = BTreeMap::new();
+
+        let result = resolver.resolve_command_line(&arguments);
+        assert!(result.is_ok());
+        let command_line = result.unwrap();
+        assert_eq!(command_line.app, "/bin/echo");
+        assert_eq!(command_line.args, vec!["Default message"]);
+    }
+
+    #[test]
+    fn test_resolve_command_line_with_empty_value_and_default() {
+        let function = Function {
+            execution: ExecutionContext::CommandLine(vec![
+                "echo".to_string(),
+                "${message or Default message}".to_string(),
+            ]),
+            description: "".to_string(),
+            parameters: BTreeMap::new(),
+            container: None,
+        };
+        let resolver = FunctionRef {
+            function: &function,
+            name: "test_function".to_string(),
+            path: &Utf8PathBuf::from("test/path"),
+            page: &Page {
+                name: "test_page".to_string(),
+                description: None,
+                categories: Vec::new(),
+                functions: BTreeMap::new(),
+            },
+        };
+        let mut arguments = BTreeMap::new();
+        arguments.insert("message".to_string(), "".to_string());
+
+        let result = resolver.resolve_command_line(&arguments);
+        assert!(result.is_ok());
+        let command_line = result.unwrap();
+        assert_eq!(command_line.app, "/bin/echo");
+        assert_eq!(command_line.args, vec!["Default message"]);
+    }
+
+    #[test]
+    fn test_resolve_command_line_with_missing_required_argument() {
+        let function = Function {
+            execution: ExecutionContext::CommandLine(vec![
+                "echo".to_string(),
+                "${required_arg}".to_string(),
+            ]),
+            description: "".to_string(),
+            parameters: BTreeMap::new(),
+            container: None,
+        };
+        let resolver = FunctionRef {
+            function: &function,
+            name: "test_function".to_string(),
+            path: &Utf8PathBuf::from("test/path"),
+            page: &Page {
+                name: "test_page".to_string(),
+                description: None,
+                categories: Vec::new(),
+                functions: BTreeMap::new(),
+            },
+        };
+        let arguments = BTreeMap::new();
+
+        let result = resolver.resolve_command_line(&arguments);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "argument required_arg not provided"
+        );
+    }
+
+    #[test]
+    fn test_resolve_command_line_with_multiple_arguments() {
+        let function = Function {
+            execution: ExecutionContext::CommandLine(vec![
+                "echo".to_string(),
+                "${arg1}".to_string(),
+                "${arg2 or default}".to_string(),
+                "literal".to_string(),
+            ]),
+            description: "".to_string(),
+            parameters: BTreeMap::new(),
+            container: None,
+        };
+        let resolver = FunctionRef {
+            function: &function,
+            name: "test_function".to_string(),
+            path: &Utf8PathBuf::from("test/path"),
+            page: &Page {
+                name: "test_page".to_string(),
+                description: None,
+                categories: Vec::new(),
+                functions: BTreeMap::new(),
+            },
+        };
+        let mut arguments = BTreeMap::new();
+        arguments.insert("arg1".to_string(), "value1".to_string());
+
+        let result = resolver.resolve_command_line(&arguments);
+        assert!(result.is_ok());
+        let command_line = result.unwrap();
+        assert_eq!(command_line.app, "/bin/echo");
+        assert_eq!(command_line.args, vec!["value1", "default", "literal"]);
+    }
+}

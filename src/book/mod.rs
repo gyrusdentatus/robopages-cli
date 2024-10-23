@@ -270,3 +270,121 @@ impl Book {
         tools
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use camino::Utf8PathBuf;
+    use std::collections::BTreeMap;
+
+    fn create_test_book() -> Book {
+        let mut pages = BTreeMap::new();
+        let mut page = Page {
+            name: "Test Page".to_string(),
+            description: Some("A test page".to_string()),
+            categories: vec!["test".to_string()],
+            functions: BTreeMap::new(),
+        };
+        page.functions.insert(
+            "test_function".to_string(),
+            Function {
+                description: "A test function".to_string(),
+                parameters: BTreeMap::new(),
+                execution: runtime::ExecutionContext::CommandLine(vec![
+                    "echo".to_string(),
+                    "test".to_string(),
+                ]),
+                container: None,
+            },
+        );
+        pages.insert(Utf8PathBuf::from("test_page"), page);
+        Book { pages }
+    }
+
+    #[test]
+    fn test_book_size() {
+        let book = create_test_book();
+        assert_eq!(book.size(), 1);
+    }
+
+    #[test]
+    fn test_get_existing_function() {
+        let book = create_test_book();
+        let result = book.get_function("test_function");
+        assert!(result.is_ok());
+        let function_ref = result.unwrap();
+        assert_eq!(function_ref.name, "test_function");
+        assert_eq!(function_ref.path, &Utf8PathBuf::from("test_page"));
+    }
+
+    #[test]
+    fn test_get_non_existing_function() {
+        let book = create_test_book();
+        let result = book.get_function("non_existing_function");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_as_tools_without_filter() {
+        let book = create_test_book();
+        let tools = book.as_tools(None);
+        assert_eq!(tools.len(), 1);
+    }
+
+    #[test]
+    fn test_as_tools_with_matching_filter() {
+        let book = create_test_book();
+        let tools = book.as_tools(Some("test_page".to_string()));
+        assert_eq!(tools.len(), 1);
+    }
+
+    #[test]
+    fn test_as_tools_with_non_matching_filter() {
+        let book = create_test_book();
+        let tools = book.as_tools(Some("non_existing_page".to_string()));
+        assert_eq!(tools.len(), 0);
+    }
+
+    #[test]
+    fn test_book_creation_with_duplicate_function_names() {
+        use std::fs;
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let base_path = temp_dir.path();
+
+        fs::write(
+            base_path.join("page1.yml"),
+            r#"
+description: First page
+categories: [test]
+functions:
+  duplicate_function:
+    description: A function
+    parameters: {}
+    cmdline: [echo, test]
+"#,
+        )
+        .unwrap();
+
+        fs::write(
+            base_path.join("page2.yml"),
+            r#"
+description: Second page
+categories: [test]
+functions:
+  duplicate_function:
+    description: Another function
+    parameters: {}
+    cmdline: [echo, test]
+"#,
+        )
+        .unwrap();
+
+        let result = Book::from_path(Utf8PathBuf::from(base_path.to_str().unwrap()), None).unwrap();
+
+        assert_eq!(result.size(), 2);
+        assert!(result.get_function("duplicate_function").is_ok());
+        assert!(result.get_function("page2_duplicate_function").is_ok());
+    }
+}

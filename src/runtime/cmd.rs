@@ -99,3 +99,80 @@ impl fmt::Display for CommandLine {
         write!(f, "{}", command)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_command_line_display() {
+        let cmd = CommandLine {
+            sudo: false,
+            app: "ls".to_string(),
+            args: vec!["-l".to_string(), "-a".to_string()],
+            app_in_path: true,
+        };
+        assert_eq!(format!("{}", cmd), "ls -l -a");
+
+        let cmd_with_sudo = CommandLine {
+            sudo: true,
+            app: "apt".to_string(),
+            args: vec!["install".to_string(), "package".to_string()],
+            app_in_path: true,
+        };
+        assert_eq!(format!("{}", cmd_with_sudo), "sudo apt install package");
+    }
+
+    #[tokio::test]
+    async fn test_command_line_execute_success() {
+        let cmd = CommandLine {
+            sudo: false,
+            app: "echo".to_string(),
+            args: vec!["-n".to_string(), "Hello, World!".to_string()],
+            app_in_path: true,
+        };
+        let result = cmd.execute().await.unwrap();
+        assert_eq!(result, "Hello, World!");
+    }
+
+    #[tokio::test]
+    async fn test_command_line_execute_failure() {
+        let cmd = CommandLine {
+            sudo: false,
+            app: "ls".to_string(),
+            args: vec!["nonexistent_file".to_string()],
+            app_in_path: true,
+        };
+        let result = cmd.execute().await.unwrap();
+        assert!(result.contains("EXIT CODE:"));
+        assert!(result.contains("ERROR:"));
+    }
+
+    #[tokio::test]
+    async fn test_command_line_execute_with_stderr() {
+        let cmd = CommandLine {
+            sudo: false,
+            app: "sh".to_string(),
+            args: vec![
+                "-c".to_string(),
+                "echo 'Hello' && echo 'Error' >&2".to_string(),
+            ],
+            app_in_path: true,
+        };
+        let result = cmd.execute().await.unwrap();
+        assert!(result.contains("Hello"));
+        assert!(result.contains("Error"));
+    }
+
+    #[tokio::test]
+    async fn test_command_line_empty_app() {
+        let cmd = CommandLine {
+            sudo: false,
+            app: "".to_string(),
+            args: vec!["arg1".to_string(), "arg2".to_string()],
+            app_in_path: true,
+        };
+        let result = cmd.execute().await;
+        assert!(result.is_err());
+    }
+}

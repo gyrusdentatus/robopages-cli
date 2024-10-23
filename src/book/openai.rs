@@ -108,3 +108,89 @@ pub(crate) struct CallResultMessage {
 fn default_result_message_role() -> String {
     "tool".to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_function_call() {
+        let mut arguments = BTreeMap::new();
+        arguments.insert("arg1".to_string(), "value1".to_string());
+        arguments.insert("arg2".to_string(), "value2".to_string());
+
+        let function_call = FunctionCall {
+            name: "test_function".to_string(),
+            arguments,
+        };
+
+        assert_eq!(function_call.name, "test_function");
+        assert_eq!(function_call.arguments.len(), 2);
+        assert_eq!(
+            function_call.arguments.get("arg1"),
+            Some(&"value1".to_string())
+        );
+        assert_eq!(
+            function_call.arguments.get("arg2"),
+            Some(&"value2".to_string())
+        );
+    }
+
+    #[test]
+    fn test_call() {
+        let function_call = FunctionCall {
+            name: "test_function".to_string(),
+            arguments: BTreeMap::new(),
+        };
+
+        let call = Call {
+            id: Some("test_id".to_string()),
+            call_type: "function".to_string(),
+            function: function_call,
+        };
+
+        assert_eq!(call.id, Some("test_id".to_string()));
+        assert_eq!(call.call_type, "function");
+        assert_eq!(call.function.name, "test_function");
+    }
+
+    #[test]
+    fn test_call_default_type() {
+        let function_call = FunctionCall {
+            name: "test_function".to_string(),
+            arguments: BTreeMap::new(),
+        };
+
+        let call = Call {
+            id: None,
+            call_type: default_call_type(),
+            function: function_call,
+        };
+
+        assert_eq!(call.call_type, "function");
+    }
+
+    #[test]
+    fn test_call_result_message() {
+        let message = CallResultMessage {
+            role: "custom_role".to_string(),
+            call_id: Some("test_id".to_string()),
+            content: "Test content".to_string(),
+        };
+
+        assert_eq!(message.role, "custom_role");
+        assert_eq!(message.call_id, Some("test_id".to_string()));
+        assert_eq!(message.content, "Test content");
+    }
+
+    #[test]
+    fn test_call_result_message_default_role() {
+        let message = CallResultMessage {
+            role: default_result_message_role(),
+            call_id: None,
+            content: "Test content".to_string(),
+        };
+
+        assert_eq!(message.role, "tool");
+    }
+}

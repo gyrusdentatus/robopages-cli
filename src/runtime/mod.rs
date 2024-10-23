@@ -48,7 +48,6 @@ async fn wait_for_available_tasks(max_running_tasks: usize) {
     }
 }
 
-// TODO: add unit tests for validation
 pub(crate) async fn execute_call(
     interactive: bool,
     max_running_tasks: usize,
@@ -164,4 +163,206 @@ pub(crate) async fn execute(
     }
 
     Ok(results)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::book::{runtime::ExecutionContext, Function, Page};
+
+    use super::*;
+    use std::collections::BTreeMap;
+
+    #[tokio::test]
+    async fn test_execute_call() {
+        let call = openai::Call {
+            id: Some("test_call".to_string()),
+            call_type: "function".to_string(),
+            function: openai::FunctionCall {
+                name: "test_function".to_string(),
+                arguments: BTreeMap::new(),
+            },
+        };
+
+        let mock_page = Page {
+            name: "test_page".to_string(),
+            description: Some("Test page".to_string()),
+            categories: Vec::new(),
+            functions: {
+                let mut map = BTreeMap::new();
+                map.insert(
+                    "test_function".to_string(),
+                    Function {
+                        description: "Test function".to_string(),
+                        parameters: BTreeMap::new(),
+                        execution: ExecutionContext::CommandLine(vec![
+                            "echo".to_string(),
+                            "test".to_string(),
+                        ]),
+                        container: None,
+                    },
+                );
+                map
+            },
+        };
+
+        let book = Arc::new(Book {
+            pages: {
+                let mut map = BTreeMap::new();
+                map.insert(camino::Utf8PathBuf::from("test_page"), mock_page);
+                map
+            },
+        });
+
+        let result = execute_call(false, 10, book, call).await.unwrap();
+
+        assert_eq!(result.role, "tool");
+        assert_eq!(result.call_id, Some("test_call".to_string()));
+        assert_eq!(result.content, "test\n");
+    }
+
+    #[tokio::test]
+    async fn test_execute() {
+        let calls = vec![
+            openai::Call {
+                id: Some("call1".to_string()),
+                call_type: "function".to_string(),
+                function: openai::FunctionCall {
+                    name: "echo1".to_string(),
+                    arguments: BTreeMap::new(),
+                },
+            },
+            openai::Call {
+                id: Some("call2".to_string()),
+                call_type: "function".to_string(),
+                function: openai::FunctionCall {
+                    name: "echo2".to_string(),
+                    arguments: BTreeMap::new(),
+                },
+            },
+        ];
+
+        let mock_page = Page {
+            name: "test_page".to_string(),
+            description: Some("Test page".to_string()),
+            categories: Vec::new(),
+            functions: {
+                let mut map = BTreeMap::new();
+                map.insert(
+                    "echo1".to_string(),
+                    Function {
+                        description: "Echo 1".to_string(),
+                        parameters: BTreeMap::new(),
+                        execution: ExecutionContext::CommandLine(vec![
+                            "echo".to_string(),
+                            "test1".to_string(),
+                        ]),
+                        container: None,
+                    },
+                );
+                map.insert(
+                    "echo2".to_string(),
+                    Function {
+                        description: "Echo 2".to_string(),
+                        parameters: BTreeMap::new(),
+                        execution: ExecutionContext::CommandLine(vec![
+                            "echo".to_string(),
+                            "test2".to_string(),
+                        ]),
+                        container: None,
+                    },
+                );
+                map
+            },
+        };
+
+        let book = Arc::new(Book {
+            pages: {
+                let mut map = BTreeMap::new();
+                map.insert(camino::Utf8PathBuf::from("test_page"), mock_page);
+                map
+            },
+        });
+
+        let results = execute(false, book, calls, 10).await.unwrap();
+
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].content, "test1\n");
+        assert_eq!(results[1].content, "test2\n");
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_non_existent_function() {
+        let book = Arc::new(Book {
+            pages: {
+                let mut map = BTreeMap::new();
+                map.insert(
+                    camino::Utf8PathBuf::from("test_page"),
+                    Page {
+                        name: "test_page".to_string(),
+                        description: Some("Test page".to_string()),
+                        categories: Vec::new(),
+                        functions: BTreeMap::new(),
+                    },
+                );
+                map
+            },
+        });
+
+        let calls = vec![openai::Call {
+            id: Some("call1".to_string()),
+            call_type: "function".to_string(),
+            function: openai::FunctionCall {
+                name: "non_existent_function".to_string(),
+                arguments: BTreeMap::new(),
+            },
+        }];
+
+        let result = execute(false, Arc::clone(&book), calls, 10).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_non_existent_command() {
+        let book = Arc::new(Book {
+            pages: {
+                let mut map = BTreeMap::new();
+                map.insert(
+                    camino::Utf8PathBuf::from("test_page"),
+                    Page {
+                        name: "test_page".to_string(),
+                        description: Some("Test page".to_string()),
+                        categories: Vec::new(),
+                        functions: {
+                            let mut map = BTreeMap::new();
+                            map.insert(
+                                "non_existent".to_string(),
+                                Function {
+                                    description: "Non-existent command".to_string(),
+                                    parameters: BTreeMap::new(),
+                                    execution: ExecutionContext::CommandLine(vec![
+                                        "non_existent_command".to_string(),
+                                    ]),
+                                    container: None,
+                                },
+                            );
+                            map
+                        },
+                    },
+                );
+                map
+            },
+        });
+
+        let calls = vec![openai::Call {
+            id: Some("call1".to_string()),
+            call_type: "function".to_string(),
+            function: openai::FunctionCall {
+                name: "non_existent".to_string(),
+                arguments: BTreeMap::new(),
+            },
+        }];
+
+        let result = execute(false, Arc::clone(&book), calls, 10).await;
+        assert!(result.is_err());
+    }
 }
