@@ -67,10 +67,17 @@ View installed robopages:
 robopages view
 ```
 
-Create a robopage:
+Create a robopage with the preferred template:
 
 ```bash
-robopages create --name my_first_page.yml
+# create with the basic template, will run the command in the current shell
+robopages create --name my_first_page.yml --template basic
+
+# create with the docker-image template, will use a docker image to run the command
+robopages create --name my_first_page.yml --template docker-image
+
+# create with the docker-build template, will build a docker image to run the command
+robopages create --name my_first_page.yml --template docker-build
 ```
 
 Start the REST API:
