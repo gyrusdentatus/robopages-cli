@@ -1,52 +1,24 @@
-use std::collections::BTreeMap;
-
 use camino::Utf8PathBuf;
 
-use crate::book::{runtime::ExecutionContext, Function, Page, Parameter};
+use crate::book::templates::Template;
 
-pub(crate) async fn create(name: Utf8PathBuf) -> anyhow::Result<()> {
+pub(crate) async fn create(template: Template, name: Utf8PathBuf) -> anyhow::Result<()> {
     if name.exists() {
         return Err(anyhow::anyhow!("{:?} already exists", name));
     }
 
-    // TODO: interactive mode asking for a template, the function name, description, parameters, etc.
+    for parts in template.get_data()? {
+        if let Some(part_name) = parts.name {
+            let asset = name.parent().unwrap().join(part_name);
+            log::info!("creating asset {:?}", asset.to_string());
 
-    log::info!("creating {:?}", name);
+            std::fs::write(asset, parts.data)?;
+        } else {
+            log::info!("creating {:?} from template {}", name, template.to_string());
 
-    let mut parameters = BTreeMap::new();
-    parameters.insert(
-        "foo".to_string(),
-        Parameter {
-            param_type: "string".to_string(),
-            description: "An example paramter named foo.".to_string(),
-            required: true,
-            examples: Some(vec!["bar".to_string(), "baz".to_string()]),
-        },
-    );
-
-    let mut functions = BTreeMap::new();
-    functions.insert(
-        "example_function_name".to_string(),
-        Function {
-            description: "This is an example function describing a command line.".to_string(),
-            parameters,
-            container: None,
-            execution: ExecutionContext::CommandLine(vec![
-                "echo".to_string(),
-                "${foo}".to_string(),
-            ]),
-        },
-    );
-
-    let page = Page {
-        description: Some("You can use this for a description.".to_string()),
-        functions,
-        categories: Vec::new(),
-        name: String::new(),
-    };
-
-    let yaml = serde_yaml::to_string(&page)?;
-    std::fs::write(&name, yaml)?;
+            std::fs::write(name.to_string(), parts.data)?;
+        }
+    }
 
     Ok(())
 }

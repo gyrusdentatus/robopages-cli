@@ -1,0 +1,50 @@
+description: An example using a docker container built locally.
+
+# declare one or more functions per page
+functions:
+  # the function name
+  nmap_tcp_ports_syn_scan:
+    description: Scan one or more targets for the list of common TCP ports using a TCP SYN scan.
+    # function parameters
+    parameters:
+      # the parameter name
+      target:
+        # the parameter type
+        type: string
+        description: The IP address, CIDR, range or hostname to scan.
+        # optional examples of valid values
+        examples:
+          - 192.168.1.1
+          - 192.168.1.0/24
+          - scanme.nmap.org
+
+    # the container to use
+    container:
+      # normally, if the binary specificed in cmdline is found in $PATH,
+      # it will be used instead of the container binary
+      # by setting force to true, the container image will be used instead
+      force: true
+      # specify how to build the container image
+      build: 
+        # path to the Dockerfile, ${cwd} is the directory of the robopage.yml file
+        path: ${cwd}/nmap.Dockerfile
+        # how to tag the image
+        name: nmap_local
+
+      # optional volumes to mount
+      # volumes:
+      # - /var/run/docker.sock:/var/run/docker.sock
+      # optional container arguments
+      args:
+        # share the same network as the host
+        - --net=host
+
+    # the command line to execute
+    cmdline:
+      # sudo is automatically removed if running as container
+      - sudo
+      - nmap
+      - -sS
+      - -Pn
+      - -A
+      - ${target}

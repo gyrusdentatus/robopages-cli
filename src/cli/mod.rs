@@ -13,6 +13,8 @@ pub(crate) use run::*;
 pub(crate) use serve::*;
 pub(crate) use view::*;
 
+use crate::book::templates::Template;
+
 const DEFAULT_REPO: &str = "dreadnode/robopages";
 const DEFAULT_PATH: &str = "~/.robopages/";
 
@@ -36,6 +38,9 @@ pub(crate) enum Command {
     },
     /// Create a new robopage file.
     Create {
+        /// Template name.
+        #[clap(long, short = 'T', value_enum, default_value = "basic")]
+        template: Template,
         /// File name.
         #[clap(long, short = 'N', default_value = "robopage.yml")]
         name: Utf8PathBuf,

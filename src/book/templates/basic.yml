@@ -1,0 +1,28 @@
+description: You can use this for a description.
+
+# declare one or more functions per page
+functions:
+  # the function name
+  example_function_name:
+    description: This is an example function describing a command line.
+    # function parameters
+    parameters:
+      # the parameter name
+      foo:
+        # the parameter type
+        type: string
+        description: An example paramter named foo.
+        # whether the parameter is required, default to true
+        # required: false
+        # optional examples of valid values
+        examples:
+        - bar
+        - baz
+
+    # the command line to execute
+    cmdline:
+    - echo
+    # valid syntax for parameters interpolation:
+    #   ${parameter_name}
+    #   ${parameter_name or default_value}
+    - ${foo}

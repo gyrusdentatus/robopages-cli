@@ -25,7 +25,7 @@ async fn main() -> anyhow::Result<()> {
 
     let result = match args.command {
         cli::Command::Install { source, path } => cli::install(source, path).await,
-        cli::Command::Create { name } => cli::create(name).await,
+        cli::Command::Create { template, name } => cli::create(template, name).await,
         cli::Command::View { path, filter } => cli::view(path, filter).await,
         cli::Command::Serve {
             path,
