@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use actix_cors::Cors;
-use actix_web::http::header;
 use actix_web::web;
 use actix_web::App;
 use actix_web::HttpRequest;
