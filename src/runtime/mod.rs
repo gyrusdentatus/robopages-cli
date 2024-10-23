@@ -157,7 +157,7 @@ pub(crate) async fn execute(
         match future_result {
             Ok(result) => match result {
                 Ok(result) => results.push(result),
-                Err(e) => log::error!("error executing call: {:?}", e),
+                Err(e) => return Err(anyhow!("error executing call: {:?}", e)),
             },
             Err(e) => log::error!("error joining task: {:?}", e),
         }
