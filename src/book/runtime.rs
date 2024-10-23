@@ -54,6 +54,7 @@ impl<'a> FunctionRef<'a> {
         &self,
         provided_arguments: &BTreeMap<String, String>,
     ) -> anyhow::Result<()> {
+        // check for missing required arguments
         for (arg_name, param) in &self.function.parameters {
             if param.required && !provided_arguments.contains_key(arg_name) {
                 return Err(anyhow::anyhow!(
@@ -62,11 +63,18 @@ impl<'a> FunctionRef<'a> {
                     &self.name
                 ));
             }
-
-            // TODO: validate type at some point ... ?
         }
 
-        // TODO: should we check for extra arguments not specified in the function parameters?
+        // check for extra arguments
+        for arg_name in provided_arguments.keys() {
+            if !self.function.parameters.contains_key(arg_name) {
+                return Err(anyhow::anyhow!(
+                    "unknown argument {} for function {}",
+                    arg_name,
+                    &self.name
+                ));
+            }
+        }
 
         Ok(())
     }
