@@ -96,10 +96,18 @@ impl<'a> FunctionRef<'a> {
                         .ok_or(ARG_EXPRESSION_ERROR)
                         .map_err(|e| anyhow!(e))?
                         .as_str();
+                    let var_default = caps.get(3).map(|m| m.as_str());
 
                     if let Some(value) = arguments.get(var_name) {
-                        value.to_string()
-                    } else if let Some(default_value) = caps.get(3).map(|m| m.as_str()) {
+                        // if the value is empty and there's a default value, use the default value
+                        if value.is_empty() && var_default.is_some() {
+                            var_default.unwrap().to_string()
+                        } else {
+                            // otherwise, use the provided value
+                            value.to_string()
+                        }
+                    } else if let Some(default_value) = var_default {
+                        // if the value is not provided and there's a default value, use the default value
                         default_value.to_string()
                     } else {
                         return Err(anyhow::anyhow!("argument {} not provided", var_name));
