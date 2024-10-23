@@ -1,9 +1,8 @@
 # Robopages
 
-CLI for https://github.com/dreadnode/robopages
+[Robopages are YAML based files](https://github.com/dreadnode/robopages) for describing tools to large language models (LLMs). They simplify the process of defining and using external tools in LLM-powered applications. By leveraging the `robopages-cli` function calling server, developers can avoid the tedious task of manually writing JSON declarations for each tool. This approach streamlines tool integration, improves maintainability, and allows for more dynamic and flexible interactions between LLMs and external utilities.
 
 Pages are loaded by default from the `~/.robopages/` directory (or any folder set in the `ROBOPAGES_PATH` environment variable), see the `https://github.com/dreadnode/robopages` repository for examples.
-
 
 ## Build Docker image
 
@@ -40,7 +39,6 @@ The compiled binary will be available in the `target/release` directory. You can
 # Or, copy to a directory in your PATH (e.g., /usr/local/bin)
 sudo cp target/release/robopages /usr/local/bin/
 ```
-
 
 ## Usage
 
