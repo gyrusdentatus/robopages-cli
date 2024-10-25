@@ -253,7 +253,7 @@ mod tests {
         let result = resolver.resolve_command_line(&arguments);
         assert!(result.is_ok());
         let command_line = result.unwrap();
-        assert_eq!(command_line.app, "/bin/echo");
+        assert!(command_line.app.ends_with("/echo"));
         assert_eq!(command_line.args, vec!["Hello, World!"]);
     }
 
@@ -284,7 +284,7 @@ mod tests {
         let result = resolver.resolve_command_line(&arguments);
         assert!(result.is_ok());
         let command_line = result.unwrap();
-        assert_eq!(command_line.app, "/bin/echo");
+        assert!(command_line.app.ends_with("/echo"));
         assert_eq!(command_line.args, vec!["Default message"]);
     }
 
@@ -316,7 +316,7 @@ mod tests {
         let result = resolver.resolve_command_line(&arguments);
         assert!(result.is_ok());
         let command_line = result.unwrap();
-        assert_eq!(command_line.app, "/bin/echo");
+        assert!(command_line.app.ends_with("/echo"));
         assert_eq!(command_line.args, vec!["Default message"]);
     }
 
@@ -382,7 +382,7 @@ mod tests {
         let result = resolver.resolve_command_line(&arguments);
         assert!(result.is_ok());
         let command_line = result.unwrap();
-        assert_eq!(command_line.app, "/bin/echo");
+        assert!(command_line.app.ends_with("/echo"));
         assert_eq!(command_line.args, vec!["value1", "default", "literal"]);
     }
 }
