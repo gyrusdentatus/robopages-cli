@@ -106,7 +106,7 @@ Repeat for multiple variables:
 robopages run -F function_name -A -D target=www.example.com -D foo=bar
 ```
 
-### SDK
+### Using with LLMs
 
 Use with OLLAMA (or any OpenAI function calling schema compatible client and model) via the REST API:
 
@@ -149,6 +149,12 @@ async def run(model: str):
 
 
 asyncio.run(run("llama3.1"))
+```
+
+Use with any [Nerve tasklet](https://github.com/evilsocket/nerve):
+
+```bash
+nerve -G "..." -T /path/to/tasklet -R "localhost:8000/cybersecurity/reverse-engineering"
 ```
 
 For more examples, see the `examples/` folder.
