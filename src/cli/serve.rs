@@ -9,7 +9,10 @@ use actix_web::HttpServer;
 use camino::Utf8PathBuf;
 
 use crate::book::flavors::Flavor;
-use crate::book::{flavors::openai, Book};
+use crate::book::{
+    flavors::{nerve, openai},
+    Book,
+};
 use crate::runtime;
 
 struct AppState {
@@ -29,11 +32,11 @@ async fn serve_pages_impl(
     let flavor = Flavor::from_map_or_default(&query)
         .map_err(|e| actix_web::error::ErrorBadRequest(e.to_string()))?;
 
-    let tools = match flavor {
-        Flavor::OpenAI => state.book.as_tools::<openai::Tool>(filter),
-    };
-
-    Ok(HttpResponse::Ok().json(tools))
+    if flavor.is_nerve() {
+        Ok(HttpResponse::Ok().json(state.book.as_tools::<nerve::FunctionGroup>(filter)))
+    } else {
+        Ok(HttpResponse::Ok().json(state.book.as_tools::<openai::Tool>(filter)))
+    }
 }
 
 async fn serve_pages_with_filter(
