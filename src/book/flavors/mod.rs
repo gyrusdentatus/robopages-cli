@@ -10,6 +10,7 @@ pub(crate) enum Flavor {
     Nerve,
 }
 
+#[allow(dead_code)]
 impl Flavor {
     pub fn from_string(s: &str) -> anyhow::Result<Self> {
         match s.to_lowercase().as_str() {

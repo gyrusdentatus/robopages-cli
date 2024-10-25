@@ -291,6 +291,7 @@ impl Book {
 mod tests {
     use super::*;
     use camino::Utf8PathBuf;
+    use flavors::openai;
     use std::collections::BTreeMap;
 
     fn create_test_book() -> Book {
@@ -343,21 +344,21 @@ mod tests {
     #[test]
     fn test_as_tools_without_filter() {
         let book = create_test_book();
-        let tools = book.as_tools(None);
+        let tools = book.as_tools::<openai::Tool>(None);
         assert_eq!(tools.len(), 1);
     }
 
     #[test]
     fn test_as_tools_with_matching_filter() {
         let book = create_test_book();
-        let tools = book.as_tools(Some("test_page".to_string()));
+        let tools = book.as_tools::<openai::Tool>(Some("test_page".to_string()));
         assert_eq!(tools.len(), 1);
     }
 
     #[test]
     fn test_as_tools_with_non_matching_filter() {
         let book = create_test_book();
-        let tools = book.as_tools(Some("non_existing_page".to_string()));
+        let tools = book.as_tools::<openai::Tool>(Some("non_existing_page".to_string()));
         assert_eq!(tools.len(), 0);
     }
 

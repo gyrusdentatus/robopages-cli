@@ -14,6 +14,7 @@ static ARG_VALUE_PARSER: Lazy<Regex> = lazy_regex!(r"(?m)\$\{\s*([\w\.]+)(\s+or\
 const ARG_EXPRESSION_ERROR: &str =
     "argument expression must be in the form of ${name} or ${name or default_value}";
 
+#[allow(dead_code)]
 pub enum ExecutionFlavor {
     Shell(String),
     Sudo,
@@ -42,7 +43,7 @@ impl ExecutionFlavor {
         match self {
             Self::Shell(shell) => shell.to_string(),
             Self::Sudo => "sudo".to_string(),
-            Self::Docker(image) => "docker".to_string(),
+            Self::Docker(_) => "docker".to_string(),
             Self::Error(message) => message.to_string(),
         }
     }
