@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, sync::Arc};
 use camino::Utf8PathBuf;
 
 use crate::{
-    book::{openai, Book},
+    book::{flavors::openai, Book},
     runtime::{self, prompt},
 };
 

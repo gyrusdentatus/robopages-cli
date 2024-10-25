@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::book::Page;
+
 // https://platform.openai.com/docs/guides/function-calling
 
 #[derive(Debug, Serialize)]
@@ -35,8 +37,8 @@ pub(crate) struct Parameter {
     pub description: String,
 }
 
-impl From<&super::Page> for Vec<Tool> {
-    fn from(page: &super::Page) -> Self {
+impl From<&Page> for Vec<Tool> {
+    fn from(page: &Page) -> Self {
         page.functions
             .iter()
             .map(|(func_name, func)| {

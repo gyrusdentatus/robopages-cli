@@ -1,15 +1,15 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use actix_cors::Cors;
 use actix_web::web;
 use actix_web::App;
-use actix_web::HttpRequest;
 use actix_web::HttpResponse;
 use actix_web::HttpServer;
 use camino::Utf8PathBuf;
 
-use crate::book::openai;
-use crate::book::Book;
+use crate::book::flavors::Flavor;
+use crate::book::{flavors::openai, Book};
 use crate::runtime;
 
 struct AppState {
@@ -21,24 +21,38 @@ async fn not_found() -> actix_web::Result<HttpResponse> {
     Ok(HttpResponse::NotFound().body("nope"))
 }
 
+async fn serve_pages_impl(
+    state: web::Data<Arc<AppState>>,
+    query: web::Query<HashMap<String, String>>,
+    filter: Option<String>,
+) -> actix_web::Result<HttpResponse> {
+    let flavor = Flavor::from_map_or_default(&query)
+        .map_err(|e| actix_web::error::ErrorBadRequest(e.to_string()))?;
+
+    let tools = match flavor {
+        Flavor::OpenAI => state.book.as_tools::<openai::Tool>(filter),
+    };
+
+    Ok(HttpResponse::Ok().json(tools))
+}
+
 async fn serve_pages_with_filter(
     state: web::Data<Arc<AppState>>,
-    _: HttpRequest,
+    query: web::Query<HashMap<String, String>>,
     actix_web_lab::extract::Path((filter,)): actix_web_lab::extract::Path<(String,)>,
 ) -> actix_web::Result<HttpResponse> {
-    Ok(HttpResponse::Ok().json(state.book.as_tools(Some(filter))))
+    serve_pages_impl(state, query, Some(filter)).await
 }
 
 async fn serve_pages(
     state: web::Data<Arc<AppState>>,
-    _: HttpRequest,
+    query: web::Query<HashMap<String, String>>,
 ) -> actix_web::Result<HttpResponse> {
-    Ok(HttpResponse::Ok().json(state.book.as_tools(None)))
+    serve_pages_impl(state, query, None).await
 }
 
 async fn process_calls(
     state: web::Data<Arc<AppState>>,
-    _: HttpRequest,
     calls: web::Json<Vec<openai::Call>>,
 ) -> actix_web::Result<HttpResponse> {
     match runtime::execute(false, state.book.clone(), calls.0, state.max_running_tasks).await {

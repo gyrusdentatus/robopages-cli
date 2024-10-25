@@ -1,6 +1,6 @@
 use std::sync::{atomic::AtomicUsize, Arc};
 
-use crate::book::{openai, Book};
+use crate::book::{flavors::openai, Book};
 
 mod cmd;
 mod docker;

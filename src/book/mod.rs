@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::runtime::{CommandLine, ContainerSource};
 
-pub(crate) mod openai;
+pub(crate) mod flavors;
 pub(crate) mod runtime;
 pub(crate) mod templates;
 
@@ -269,15 +269,17 @@ impl Book {
         Err(anyhow::anyhow!("function {} not found", name))
     }
 
-    // TODO: add support for different flavors? https://github.com/groq/groq-api-cookbook/blob/main/tutorials/function-calling-101-ecommerce/Function-Calling-101-Ecommerce.ipynb
-    pub fn as_tools(&self, filter: Option<String>) -> Vec<openai::Tool> {
+    pub fn as_tools<'a, T>(&'a self, filter: Option<String>) -> Vec<T>
+    where
+        Vec<T>: std::convert::From<&'a Page>,
+    {
         let mut tools = Vec::new();
 
         for (page_path, page) in &self.pages {
             eval_if_in_filter!(
                 page_path,
                 filter,
-                tools.extend(<&Page as Into<Vec<openai::Tool>>>::into(page))
+                tools.extend(<&Page as Into<Vec<T>>>::into(page))
             );
         }
 
