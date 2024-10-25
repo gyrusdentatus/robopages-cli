@@ -103,7 +103,6 @@ pub(crate) async fn serve(
         book,
     });
 
-    // TODO: add minimal web ui
     HttpServer::new(move || {
         let cors = Cors::default().max_age(3600);
 
