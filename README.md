@@ -14,17 +14,9 @@ docker build . -t robopages
 
 ## Build from source
 
+Alternatively you can build the project from source, in which case you'll need to have Rust and Cargo [installed on your system](https://rustup.rs/) and clone this repository.
 
-Alternatively you can build the project from source, in which case you'll need to have Rust and Cargo [installed on your system](https://rustup.rs/).
-
-Once you have those set up, clone the repository:
-
-```bash
-git clone https://github.com/dreadnode/robopages-cli.git
-cd robopages-cli
-```
-
-Build the project:
+To build the project:
 
 ```bash
 cargo build --release
