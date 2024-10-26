@@ -2,12 +2,14 @@ use std::collections::HashMap;
 
 pub(crate) mod nerve;
 pub(crate) mod openai;
+pub(crate) mod rigging;
 
 #[derive(Default, Debug)]
 pub(crate) enum Flavor {
     #[default]
     OpenAI,
     Nerve,
+    Rigging,
 }
 
 #[allow(dead_code)]
@@ -16,6 +18,7 @@ impl Flavor {
         match s.to_lowercase().as_str() {
             "openai" => Ok(Flavor::OpenAI),
             "nerve" => Ok(Flavor::Nerve),
+            "rigging" => Ok(Flavor::Rigging),
             _ => Err(anyhow!("unknown flavor: {}", s)),
         }
     }
@@ -33,6 +36,10 @@ impl Flavor {
     pub fn is_nerve(&self) -> bool {
         matches!(self, Flavor::Nerve)
     }
+
+    pub fn is_rigging(&self) -> bool {
+        matches!(self, Flavor::Rigging)
+    }
 }
 
 #[cfg(test)]
@@ -48,6 +55,19 @@ mod tests {
         assert!(matches!(Flavor::from_string("nerve"), Ok(Flavor::Nerve)));
         assert!(matches!(Flavor::from_string("Nerve"), Ok(Flavor::Nerve)));
         assert!(matches!(Flavor::from_string("NERVE"), Ok(Flavor::Nerve)));
+
+        assert!(matches!(
+            Flavor::from_string("rigging"),
+            Ok(Flavor::Rigging)
+        ));
+        assert!(matches!(
+            Flavor::from_string("Rigging"),
+            Ok(Flavor::Rigging)
+        ));
+        assert!(matches!(
+            Flavor::from_string("RIGGING"),
+            Ok(Flavor::Rigging)
+        ));
 
         assert!(Flavor::from_string("unknown").is_err());
         assert!(Flavor::from_string("").is_err());

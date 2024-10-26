@@ -8,6 +8,7 @@ use actix_web::HttpResponse;
 use actix_web::HttpServer;
 use camino::Utf8PathBuf;
 
+use crate::book::flavors::rigging;
 use crate::book::flavors::Flavor;
 use crate::book::{
     flavors::{nerve, openai},
@@ -32,10 +33,15 @@ async fn serve_pages_impl(
     let flavor = Flavor::from_map_or_default(&query)
         .map_err(|e| actix_web::error::ErrorBadRequest(e.to_string()))?;
 
-    if flavor.is_nerve() {
-        Ok(HttpResponse::Ok().json(state.book.as_tools::<nerve::FunctionGroup>(filter)))
-    } else {
-        Ok(HttpResponse::Ok().json(state.book.as_tools::<openai::Tool>(filter)))
+    match flavor {
+        Flavor::Nerve => {
+            Ok(HttpResponse::Ok().json(state.book.as_tools::<nerve::FunctionGroup>(filter)))
+        }
+        Flavor::Rigging => {
+            Ok(HttpResponse::Ok().json(state.book.as_tools::<rigging::Tool>(filter)))
+        }
+        // default to openai
+        _ => Ok(HttpResponse::Ok().json(state.book.as_tools::<openai::Tool>(filter))),
     }
 }
 

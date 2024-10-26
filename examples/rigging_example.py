@@ -10,16 +10,23 @@ class Wrapper(rg.Tool):
     name = "_"
     description = "_"
 
-    def __init__(self, func: dict):
-        self.name = func["name"]
-        self.description = func["description"]
-        self.function = func
-        # declare dynamically the function by its name
-        setattr(Wrapper, self.name, self._execute_function)
+    def __init__(self, tool: dict):
+        self.tool = tool
+        self.name = tool["name"]
+        self.description = tool["description"]
 
-    def _execute_function(self, *args, **kwargs):
-        print(f"executing {self.name}{kwargs} ...")
+        # declare dynamically the functions by their name
+        for function in tool["functions"]:
+            setattr(
+                Wrapper,
+                function["name"],
+                lambda self, *args, **kwargs: self._execute_function(
+                    function["name"], *args, **kwargs
+                ),
+            )
 
+    def _execute_function(self, func_name: str, *args, **kwargs):
+        print(f"executing {self.name}.{func_name}{kwargs} ...")
         # execute the call via robopages and return the result to Rigging
         return requests.post(
             "http://localhost:8000/process",
@@ -27,7 +34,7 @@ class Wrapper(rg.Tool):
                 {
                     "type": "function",
                     "function": {
-                        "name": self.name,
+                        "name": func_name,
                         "arguments": kwargs,
                     },
                 }
@@ -42,20 +49,18 @@ class Wrapper(rg.Tool):
             description=self.description,
             functions=[
                 rg.tool.ToolFunction(
-                    name=self.name,
-                    description=self.description,
+                    name=function["name"],
+                    description=function["description"],
                     parameters=[
                         rg.tool.ToolParameter(
-                            name=param_name,
-                            # rigging expects python types
-                            type="str" if param["type"] == "string" else param["type"],
+                            name=param["name"],
+                            type=param["type"],
                             description=param["description"],
                         )
-                        for param_name, param in self.function["parameters"][
-                            "properties"
-                        ].items()
+                        for param in function["parameters"]
                     ],
                 )
+                for function in self.tool["functions"]
             ],
         )
 
@@ -63,8 +68,8 @@ class Wrapper(rg.Tool):
 async def run(model: str):
     # get the tools from the Robopages server and wrap each function for Rigging
     tools = [
-        Wrapper(function["function"])
-        for function in requests.get("http://localhost:8000/").json()
+        Wrapper(tool)
+        for tool in requests.get("http://localhost:8000/?flavor=rigging").json()
     ]
 
     chat = (
