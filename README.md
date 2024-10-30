@@ -72,6 +72,9 @@ robopages create --name my_first_page.yml --template docker-build
 
 Start the REST API:
 
+> [!IMPORTANT]
+> While strict CORS rules are enforced by default, no authentication layer is provided. It is highly recommended to never bind this API to addresses other than localhost.
+
 ```bash
 # this will pre build and pull all containers
 robopages serve
