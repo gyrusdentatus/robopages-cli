@@ -32,8 +32,12 @@ docker pull dreadnode/robopages:latest
 To build your own Docker image for the tool, run:
 
 ```bash
-docker build . -t robopages  
+docker build . -t robopages
 ```
+
+Optionally, you can create a bash alias like so:
+
+`alias robopages='docker run -v /var/run/docker.sock:/var/run/docker.sock -v ~/.robopages:/root/.robopages -p 8080:8080 robopages'`
 
 ## Note about Docker
 
@@ -79,7 +83,7 @@ Install robopages:
 
 ```bash
 # install https://github.com/dreadnode/robopages to ~/.robopages/robopages-main
-robopages install 
+robopages install
 
 # install a custom repository
 robopages install --source user/repo
