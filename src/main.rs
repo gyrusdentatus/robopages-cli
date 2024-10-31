@@ -29,6 +29,7 @@ async fn main() -> anyhow::Result<()> {
         cli::Command::View(args) => cli::view(args).await,
         cli::Command::Serve(args) => cli::serve(args).await,
         cli::Command::Run(args) => cli::run(args).await,
+        cli::Command::Validate(args) => cli::validate(args).await,
     };
 
     if let Err(e) = result {

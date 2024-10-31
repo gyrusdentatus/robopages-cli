@@ -56,6 +56,8 @@ pub struct Container {
     #[serde(default = "default_preserve_app")]
     #[serde(skip_serializing_if = "is_false")]
     pub preserve_app: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub platform: Option<String>,
 }
 
 fn is_false(b: &bool) -> bool {
@@ -107,6 +109,10 @@ impl Container {
 
         Ok(dockerized)
     }
+
+    pub async fn resolve(&self) -> anyhow::Result<()> {
+        self.source.resolve(self.platform.clone()).await
+    }
 }
 
 // TODO: add optional parsers to reduce output tokens
@@ -143,9 +149,12 @@ impl Page {
     }
 
     pub fn from_path(path: &Utf8PathBuf) -> anyhow::Result<Self> {
-        let text = std::fs::read_to_string(path)?;
-        let text = Self::preprocess(path, text)?;
-        let page = serde_yaml::from_str(&text)?;
+        let text = std::fs::read_to_string(path)
+            .map_err(|e| anyhow::anyhow!("error while reading {:?}: {}", path, e))?;
+        let text = Self::preprocess(path, text)
+            .map_err(|e| anyhow::anyhow!("error while preprocessing {:?}: {}", path, e))?;
+        let page = serde_yaml::from_str(&text)
+            .map_err(|e| anyhow::anyhow!("error while parsing {:?}: {}", path, e))?;
         Ok(page)
     }
 }
@@ -163,7 +172,9 @@ impl Book {
             shellexpand::full(path.as_str())
                 .map_err(|e| anyhow::anyhow!("failed to expand path: {}", e))?
                 .into_owned(),
-        );
+        )
+        .canonicalize_utf8()
+        .map_err(|e| anyhow::anyhow!("failed to canonicalize path: {}", e))?;
 
         if path.is_file() {
             eval_if_in_filter!(path, filter, page_paths.push(path.to_path_buf()));
@@ -194,6 +205,7 @@ impl Book {
         let mut function_names = HashMap::new();
 
         for page_path in page_paths {
+            let page_path = page_path.canonicalize_utf8()?;
             let mut page = Page::from_path(&page_path)?;
 
             // if name is not set, use the file name
@@ -370,6 +382,7 @@ mod tests {
             volumes: None,
             force: false,
             preserve_app: true,
+            platform: None,
         };
 
         let original_cmdline = CommandLine {

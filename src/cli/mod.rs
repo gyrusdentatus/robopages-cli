@@ -7,12 +7,14 @@ mod create;
 mod install;
 mod run;
 mod serve;
+mod validate;
 mod view;
 
 pub(crate) use create::*;
 pub(crate) use install::*;
 pub(crate) use run::*;
 pub(crate) use serve::*;
+pub(crate) use validate::*;
 pub(crate) use view::*;
 
 use crate::book::templates::Template;
@@ -39,6 +41,8 @@ pub(crate) enum Command {
     Serve(ServeArgs),
     /// Execute a function from the robopages.
     Run(RunArgs),
+    /// Validate a robopage YML file.
+    Validate(ValidateArgs),
 }
 
 #[derive(Debug, Args)]
@@ -104,6 +108,16 @@ pub(crate) struct RunArgs {
     /// Execute the function without user interaction.
     #[clap(long, short = 'A')]
     auto: bool,
+}
+
+#[derive(Debug, Args)]
+pub(crate) struct ValidateArgs {
+    /// Path to the robopage YML file or files to validate.
+    #[clap(long, short = 'P', default_value = DEFAULT_PATH)]
+    path: Utf8PathBuf,
+    /// Do not attempt to pull or build containers.
+    #[clap(long)]
+    skip_docker: bool,
 }
 
 /// Parse a single key-value pair

@@ -102,7 +102,7 @@ pub(crate) async fn execute_call(
         log::debug!("using container: {:?}", container);
 
         // build or pull the image if needed
-        container.source.resolve().await?;
+        container.resolve().await?;
 
         // wrap the command line
         container.wrap(command_line)?

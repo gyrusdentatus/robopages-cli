@@ -107,6 +107,19 @@ robopages create --name my_first_page.yml --template docker-image
 robopages create --name my_first_page.yml --template docker-build
 ```
 
+Validate one or more files:
+
+```bash
+# validate all pages in  ~/.robopages
+robopages validate
+
+# validate a specific page
+robopages validate --path my_first_page.yml
+
+# do not attempt to pull or build containers
+robopages validate --skip-docker
+```
+
 Start the REST API:
 
 > [!IMPORTANT]

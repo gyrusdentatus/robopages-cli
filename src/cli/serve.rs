@@ -82,7 +82,7 @@ pub(crate) async fn serve(args: ServeArgs) -> anyhow::Result<()> {
             for (func_name, func) in page.functions.iter() {
                 if let Some(container) = &func.container {
                     log::info!("pre building container for function {} ...", func_name);
-                    container.source.resolve().await?;
+                    container.resolve().await?;
                 }
             }
         }

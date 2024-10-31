@@ -19,9 +19,9 @@ pub enum ContainerSource {
 }
 
 impl ContainerSource {
-    pub async fn resolve(&self) -> anyhow::Result<()> {
+    pub async fn resolve(&self, platform: Option<String>) -> anyhow::Result<()> {
         match self {
-            Self::Image(image) => pull_image(image).await,
+            Self::Image(image) => pull_image(image, platform).await,
             Self::Build { name, path } => build_image(name, path).await,
         }
     }
@@ -72,12 +72,19 @@ async fn run_command(command: &str, args: &[&str]) -> anyhow::Result<()> {
     }
 }
 
-pub(crate) async fn pull_image(image: &str) -> anyhow::Result<()> {
+pub(crate) async fn pull_image(image: &str, platform: Option<String>) -> anyhow::Result<()> {
     run_command(
         "sh",
         &[
             "-c",
-            &format!("docker images -q '{image}' | grep -q . || docker pull '{image}'"),
+            &format!(
+                "docker images -q '{image}' | grep -q . || docker pull {}'{image}'",
+                if let Some(platform) = platform {
+                    format!("--platform '{}' ", platform)
+                } else {
+                    "".to_string()
+                }
+            ),
         ],
     )
     .await
