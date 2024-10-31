@@ -7,6 +7,7 @@ edition = "2021"
 readme = "README.md"
 repository = "https://github.com/dreadnode/robopages-cli"
 homepage = "https://github.com/dreadnode/robopages"
+license = "MIT"
 
 [dependencies]
 actix-cors = "0.7.0"
