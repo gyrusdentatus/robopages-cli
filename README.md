@@ -37,7 +37,7 @@ docker build . -t robopages
 
 Optionally, you can create a bash alias like so:
 
-`alias robopages='docker run -v /var/run/docker.sock:/var/run/docker.sock -v ~/.robopages:/root/.robopages -p 8080:8080 robopages'`
+`alias robopages='docker run -v /var/run/docker.sock:/var/run/docker.sock -v ~/.robopages:/root/.robopages -p 8000:8000 robopages'`
 
 ## Note about Docker
 
