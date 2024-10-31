@@ -1,4 +1,4 @@
-FROM rust:bullseye as builder
+FROM rust:bullseye AS builder
 
 RUN apt-get update && apt-get install -y libssl-dev ca-certificates cmake git
 
