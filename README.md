@@ -1,4 +1,4 @@
-# Robopages CLI and Function Calling Server
+# Robopages Server
 
 <p align="center">
   <a href="https://github.com/dreadnode/robopages-cli/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/dreadnode/robopages-cli.svg?style=fl_pathat-square"></a>
