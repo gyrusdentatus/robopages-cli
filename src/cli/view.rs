@@ -16,10 +16,7 @@ pub(crate) async fn view(args: ViewArgs) -> anyhow::Result<()> {
             );
             println!("         parameters:");
             for (parameter_name, parameter) in &function.parameters {
-                println!(
-                    "            {{${}}} : {}",
-                    parameter_name, parameter.description
-                );
+                println!("            {} : {}", parameter_name, parameter.description);
             }
 
             println!();
