@@ -195,7 +195,21 @@ impl<'a> FunctionRef<'a> {
                         .as_str();
                     let var_default = caps.get(3).map(|m| m.as_str());
 
-                    if let Some(value) = arguments.get(var_name) {
+                    // read variable from the environment if the name starts with env. or ENV.
+                    if var_name.starts_with("env.") || var_name.starts_with("ENV.") {
+                        let env_var_name = var_name.replace("env.", "").replace("ENV.", "");
+                        let env_var = std::env::var(&env_var_name);
+                        if let Ok(value) = env_var {
+                            value
+                        } else if var_default.is_some() {
+                            var_default.unwrap().to_string()
+                        } else {
+                            return Err(anyhow::anyhow!(
+                                "environment variable {} not set",
+                                env_var_name
+                            ));
+                        }
+                    } else if let Some(value) = arguments.get(var_name) {
                         // if the value is empty and there's a default value, use the default value
                         if value.is_empty() && var_default.is_some() {
                             var_default.unwrap().to_string()
@@ -385,5 +399,104 @@ mod tests {
         let command_line = result.unwrap();
         assert!(command_line.app.ends_with("/echo"));
         assert_eq!(command_line.args, vec!["value1", "default", "literal"]);
+    }
+
+    #[test]
+    fn test_resolve_command_line_with_env_variables() {
+        std::env::set_var("TEST_VAR", "test_value");
+
+        let function = Function {
+            execution: ExecutionContext::CommandLine(vec![
+                "echo".to_string(),
+                "${env.TEST_VAR}".to_string(),
+                "${ENV.TEST_VAR}".to_string(),
+            ]),
+            description: "".to_string(),
+            parameters: BTreeMap::new(),
+            container: None,
+        };
+        let resolver = FunctionRef {
+            function: &function,
+            name: "test_function".to_string(),
+            path: &Utf8PathBuf::from("test/path"),
+            page: &Page {
+                name: "test_page".to_string(),
+                description: None,
+                categories: Vec::new(),
+                functions: BTreeMap::new(),
+            },
+        };
+        let arguments = BTreeMap::new();
+
+        let result = resolver.resolve_command_line(&arguments);
+        assert!(result.is_ok());
+        let command_line = result.unwrap();
+        assert!(command_line.app.ends_with("/echo"));
+        assert_eq!(command_line.args, vec!["test_value", "test_value"]);
+
+        std::env::remove_var("TEST_VAR");
+    }
+
+    #[test]
+    fn test_resolve_command_line_with_undefined_env_variable() {
+        let function = Function {
+            execution: ExecutionContext::CommandLine(vec![
+                "echo".to_string(),
+                "${env.UNDEFINED_VAR}".to_string(),
+            ]),
+            description: "".to_string(),
+            parameters: BTreeMap::new(),
+            container: None,
+        };
+        let resolver = FunctionRef {
+            function: &function,
+            name: "test_function".to_string(),
+            path: &Utf8PathBuf::from("test/path"),
+            page: &Page {
+                name: "test_page".to_string(),
+                description: None,
+                categories: Vec::new(),
+                functions: BTreeMap::new(),
+            },
+        };
+        let arguments = BTreeMap::new();
+
+        let result = resolver.resolve_command_line(&arguments);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "environment variable UNDEFINED_VAR not set"
+        );
+    }
+
+    #[test]
+    fn test_resolve_command_line_with_undefined_env_variable_with_default() {
+        let function = Function {
+            execution: ExecutionContext::CommandLine(vec![
+                "echo".to_string(),
+                "${env.UNDEFINED_VAR or default_value}".to_string(),
+            ]),
+            description: "".to_string(),
+            parameters: BTreeMap::new(),
+            container: None,
+        };
+        let resolver = FunctionRef {
+            function: &function,
+            name: "test_function".to_string(),
+            path: &Utf8PathBuf::from("test/path"),
+            page: &Page {
+                name: "test_page".to_string(),
+                description: None,
+                categories: Vec::new(),
+                functions: BTreeMap::new(),
+            },
+        };
+        let arguments = BTreeMap::new();
+
+        let result = resolver.resolve_command_line(&arguments);
+        assert!(result.is_ok());
+        let command_line = result.unwrap();
+        assert!(command_line.app.ends_with("/echo"));
+        assert_eq!(command_line.args, vec!["default_value"]);
     }
 }
