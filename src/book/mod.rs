@@ -182,6 +182,13 @@ impl Book {
             for entry in glob(path.join("**/*.yml").as_str())? {
                 match entry {
                     Ok(entry_path) => {
+                        // skip hidden files and folders to avoid loading .git and .github directories
+                        if entry_path.components().any(|component| {
+                            component.as_os_str().to_string_lossy().starts_with(".")
+                        }) {
+                            continue;
+                        }
+
                         if let Ok(utf8_path) = Utf8PathBuf::from_path_buf(entry_path) {
                             eval_if_in_filter!(utf8_path, filter, page_paths.push(utf8_path));
                         } else {
@@ -423,7 +430,7 @@ mod tests {
         use std::fs;
         use tempfile::TempDir;
 
-        let temp_dir = TempDir::new().unwrap();
+        let temp_dir = TempDir::with_prefix("robopage-test-").unwrap();
         let base_path = temp_dir.path();
 
         fs::write(
@@ -459,5 +466,53 @@ functions:
         assert_eq!(result.size(), 2);
         assert!(result.get_function("duplicate_function").is_ok());
         assert!(result.get_function("page2_duplicate_function").is_ok());
+    }
+
+    #[test]
+    fn test_book_skips_hidden_directories() {
+        use std::fs;
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::with_prefix("robopage-test-").unwrap();
+        let base_path = temp_dir.path();
+
+        // Create a visible directory with a valid page
+        fs::create_dir(base_path.join("visible")).unwrap();
+        fs::write(
+            base_path.join("visible/page1.yml"),
+            r#"
+description: Visible page
+categories: [test]
+functions:
+  function1:
+    description: A function
+    parameters: {}
+    cmdline: [echo, test]
+"#,
+        )
+        .unwrap();
+
+        // Create a hidden directory with a page that should be skipped
+        fs::create_dir(base_path.join(".hidden")).unwrap();
+        fs::write(
+            base_path.join(".hidden/page2.yml"),
+            r#"
+description: Hidden page
+categories: [test]
+functions:
+  function2:
+    description: Another function
+    parameters: {}
+    cmdline: [echo, test]
+"#,
+        )
+        .unwrap();
+
+        let result = Book::from_path(Utf8PathBuf::from(base_path.to_str().unwrap()), None).unwrap();
+
+        // Should only find the page from the visible directory
+        assert_eq!(result.size(), 1);
+        assert!(result.get_function("function1").is_ok());
+        assert!(result.get_function("function2").is_err());
     }
 }
