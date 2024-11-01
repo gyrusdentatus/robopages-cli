@@ -82,7 +82,33 @@ impl Container {
                 .to_string(),
             app_in_path: true,
             args: vec!["run".to_string(), "--rm".to_string()],
+            env: BTreeMap::new(),
+            temp_env_file: None,
         };
+
+        // handle environment variables if present
+        if !cmdline.env.is_empty() {
+            let mut env_contents = String::new();
+            for (key, value) in &cmdline.env {
+                env_contents.push_str(&format!("{}={}\n", key, value));
+            }
+
+            // create temp file
+            let temp_file = tempfile::NamedTempFile::new()
+                .map_err(|e| anyhow::anyhow!("failed to create temp env file: {}", e))?;
+
+            // write env vars
+            std::fs::write(temp_file.path(), env_contents)
+                .map_err(|e| anyhow::anyhow!("failed to write env file: {}", e))?;
+
+            // add env-file arg
+            dockerized
+                .args
+                .push(format!("--env-file={}", temp_file.path().display()));
+
+            // keep temp file alive until docker run completes
+            dockerized.temp_env_file = Some(temp_file);
+        }
 
         // add volumes if any
         if let Some(volumes) = &self.volumes {
@@ -397,6 +423,8 @@ mod tests {
             app: "original_app".to_string(),
             app_in_path: true,
             args: vec!["arg1".to_string(), "arg2".to_string()],
+            env: BTreeMap::new(),
+            temp_env_file: None,
         };
 
         let wrapped_cmdline = container.wrap(original_cmdline).unwrap();
@@ -514,5 +542,55 @@ functions:
         assert_eq!(result.size(), 1);
         assert!(result.get_function("function1").is_ok());
         assert!(result.get_function("function2").is_err());
+    }
+
+    #[test]
+    fn test_wrap_with_env() {
+        let env: BTreeMap<String, String> = {
+            let mut env = BTreeMap::new();
+            env.insert("TEST_VAR".to_string(), "test_value".to_string());
+            env
+        };
+
+        let command_line =
+            CommandLine::from_vec_with_env(&vec!["echo".to_string(), "test".to_string()], env)
+                .unwrap();
+
+        let container = Container {
+            source: ContainerSource::Image("test_image".to_string()),
+            args: None,
+            volumes: None,
+            force: false,
+            preserve_app: true,
+            platform: None,
+        };
+
+        let wrapped = container.wrap(command_line).unwrap();
+
+        // Find the env-file argument
+        let env_file_arg = wrapped
+            .args
+            .iter()
+            .find(|arg| arg.starts_with("--env-file="))
+            .expect("--env-file argument not found")
+            .clone();
+
+        // Extract the file path
+        let env_file_path = env_file_arg
+            .strip_prefix("--env-file=")
+            .expect("Failed to strip --env-file= prefix");
+
+        let env_file = std::path::Path::new(env_file_path);
+        assert!(env_file.exists());
+
+        // Read the env file contents
+        let env_file_contents = std::fs::read_to_string(env_file).expect("Failed to read env file");
+
+        // Verify it contains the expected environment variable
+        assert!(env_file_contents.contains("TEST_VAR=test_value"));
+
+        // Clean up the env file
+        drop(wrapped);
+        assert!(!env_file.exists(), "env file was not deleted");
     }
 }

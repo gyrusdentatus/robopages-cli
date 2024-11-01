@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{collections::BTreeMap, fmt};
 
 #[derive(Debug)]
 pub struct CommandLine {
@@ -6,6 +6,10 @@ pub struct CommandLine {
     pub app: String,
     pub app_in_path: bool,
     pub args: Vec<String>,
+    pub env: BTreeMap<String, String>,
+
+    // used to keep a valid reference to this while the command is running
+    pub temp_env_file: Option<tempfile::NamedTempFile>,
 }
 
 impl CommandLine {
@@ -47,7 +51,18 @@ impl CommandLine {
             app,
             args,
             app_in_path,
+            env: BTreeMap::new(),
+            temp_env_file: None,
         })
+    }
+
+    pub fn from_vec_with_env(
+        vec: &Vec<String>,
+        env: BTreeMap<String, String>,
+    ) -> anyhow::Result<Self> {
+        let mut cmd = Self::from_vec(vec)?;
+        cmd.env = env;
+        Ok(cmd)
     }
 
     pub async fn execute(&self) -> anyhow::Result<String> {
@@ -111,6 +126,8 @@ mod tests {
             app: "ls".to_string(),
             args: vec!["-l".to_string(), "-a".to_string()],
             app_in_path: true,
+            env: BTreeMap::new(),
+            temp_env_file: None,
         };
         assert_eq!(format!("{}", cmd), "ls -l -a");
 
@@ -119,6 +136,8 @@ mod tests {
             app: "apt".to_string(),
             args: vec!["install".to_string(), "package".to_string()],
             app_in_path: true,
+            env: BTreeMap::new(),
+            temp_env_file: None,
         };
         assert_eq!(format!("{}", cmd_with_sudo), "sudo apt install package");
     }
@@ -130,6 +149,8 @@ mod tests {
             app: "echo".to_string(),
             args: vec!["-n".to_string(), "Hello, World!".to_string()],
             app_in_path: true,
+            env: BTreeMap::new(),
+            temp_env_file: None,
         };
         let result = cmd.execute().await.unwrap();
         assert_eq!(result, "Hello, World!");
@@ -142,6 +163,8 @@ mod tests {
             app: "ls".to_string(),
             args: vec!["nonexistent_file".to_string()],
             app_in_path: true,
+            env: BTreeMap::new(),
+            temp_env_file: None,
         };
         let result = cmd.execute().await.unwrap();
         assert!(result.contains("EXIT CODE:"));
@@ -158,6 +181,8 @@ mod tests {
                 "echo 'Hello' && echo 'Error' >&2".to_string(),
             ],
             app_in_path: true,
+            env: BTreeMap::new(),
+            temp_env_file: None,
         };
         let result = cmd.execute().await.unwrap();
         assert!(result.contains("Hello"));
@@ -171,6 +196,8 @@ mod tests {
             app: "".to_string(),
             args: vec!["arg1".to_string(), "arg2".to_string()],
             app_in_path: true,
+            env: BTreeMap::new(),
+            temp_env_file: None,
         };
         let result = cmd.execute().await;
         assert!(result.is_err());

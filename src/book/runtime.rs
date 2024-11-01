@@ -182,6 +182,7 @@ impl<'a> FunctionRef<'a> {
     ) -> anyhow::Result<CommandLine> {
         // determine the command line to execute
         let command_line = self.function.execution.get_command_line()?;
+        let mut env = BTreeMap::new();
 
         // interpolate the arguments
         let command_line = {
@@ -199,7 +200,7 @@ impl<'a> FunctionRef<'a> {
                     if var_name.starts_with("env.") || var_name.starts_with("ENV.") {
                         let env_var_name = var_name.replace("env.", "").replace("ENV.", "");
                         let env_var = std::env::var(&env_var_name);
-                        if let Ok(value) = env_var {
+                        let env_var_value = if let Ok(value) = env_var {
                             value
                         } else if var_default.is_some() {
                             var_default.unwrap().to_string()
@@ -208,7 +209,12 @@ impl<'a> FunctionRef<'a> {
                                 "environment variable {} not set",
                                 env_var_name
                             ));
-                        }
+                        };
+
+                        // add the environment variable to the command line for later use
+                        env.insert(env_var_name, env_var_value.to_owned());
+
+                        env_var_value
                     } else if let Some(value) = arguments.get(var_name) {
                         // if the value is empty and there's a default value, use the default value
                         if value.is_empty() && var_default.is_some() {
@@ -231,7 +237,7 @@ impl<'a> FunctionRef<'a> {
         };
 
         // final parsing
-        CommandLine::from_vec(&command_line)
+        CommandLine::from_vec_with_env(&command_line, env)
     }
 }
 
