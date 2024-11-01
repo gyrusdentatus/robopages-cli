@@ -43,7 +43,7 @@ impl ExecutionFlavor {
         match self {
             Self::Shell(shell) => shell.to_string(),
             Self::Sudo => "sudo".to_string(),
-            Self::Docker(_) => "docker".to_string(),
+            Self::Docker(image) => format!("docker {}", image),
             Self::Error(message) => message.to_string(),
         }
     }
