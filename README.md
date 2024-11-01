@@ -82,7 +82,7 @@ This project consists of a CLI for creating, viewing and serving robopages as a 
 Install robopages:
 
 ```bash
-# install https://github.com/dreadnode/robopages to ~/.robopages/robopages-main
+# install https://github.com/dreadnode/robopages to ~/.robopages/
 robopages install
 
 # install a custom repository
