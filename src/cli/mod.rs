@@ -23,7 +23,7 @@ const DEFAULT_REPO: &str = "dreadnode/robopages";
 const DEFAULT_PATH: &str = "~/.robopages/";
 
 #[derive(Debug, Parser)]
-#[clap(name = "robopages", version)]
+#[clap(name = "robopages", about, version)]
 pub(crate) struct Arguments {
     #[clap(subcommand)]
     pub command: Command,
