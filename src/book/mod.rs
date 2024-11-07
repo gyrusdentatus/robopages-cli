@@ -212,11 +212,11 @@ impl Book {
             log::info!("Path is a directory, searching for .yml files");
             let glob_pattern = path.join("**/*.yml").as_str().to_string();
             log::info!("Using glob pattern: {}", glob_pattern);
-            
+
             for entry in glob(&glob_pattern)? {
                 match entry {
                     Ok(entry_path) => {
-                        log::info!("Found file: {:?}", entry_path);
+                        log::debug!("Found file: {:?}", entry_path);
                         // skip files in hidden directories (starting with .)
                         // but allow the root .robopages directory
                         if let Ok(relative_path) = entry_path.strip_prefix(&path) {
@@ -224,14 +224,14 @@ impl Book {
                                 let comp_str = component.as_os_str().to_string_lossy();
                                 comp_str.starts_with(".") && comp_str != "." && comp_str != ".."
                             }) {
-                                log::info!("Skipping hidden file/directory");
+                                log::debug!("Skipping hidden file/directory");
                                 continue;
                             }
                         }
 
                         if let Ok(utf8_path) = Utf8PathBuf::from_path_buf(entry_path) {
                             eval_if_in_filter!(utf8_path, filter, {
-                                log::info!("Adding path: {:?}", utf8_path);
+                                log::debug!("Adding path: {:?}", utf8_path);
                                 page_paths.push(utf8_path);
                             });
                         } else {
@@ -269,13 +269,13 @@ impl Book {
             if page.categories.is_empty() {
                 let path_buf = page_path.strip_prefix(&path)?;
                 let parent = path_buf.parent();
-                
+
                 if let Some(parent_path) = parent {
                     page.categories = parent_path
                         .components()
                         .map(|c| c.as_str().to_string())
                         .collect();
-                    
+
                     // Skip empty categories
                     page.categories.retain(|c| !c.is_empty());
                 }
