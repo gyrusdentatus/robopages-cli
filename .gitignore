@@ -2,3 +2,14 @@
 .DS_Store
 .mypy_cache
 __pycache__
+
+/.venv
+
+
+# proxy stuff
+burp.cer
+burp.pem
+install_burp.py
+
+# Local working files
+hans_test.py

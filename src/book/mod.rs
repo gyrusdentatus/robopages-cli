@@ -192,6 +192,7 @@ pub struct Book {
 
 impl Book {
     pub fn from_path(path: Utf8PathBuf, filter: Option<String>) -> anyhow::Result<Self> {
+        log::info!("Searching for pages in {:?}", path);
         let mut page_paths = Vec::new();
 
         let path = Utf8PathBuf::from(
@@ -202,31 +203,49 @@ impl Book {
         .canonicalize_utf8()
         .map_err(|e| anyhow::anyhow!("failed to canonicalize path: {}", e))?;
 
+        log::info!("Canonicalized path: {:?}", path);
+
         if path.is_file() {
+            log::info!("Path is a file");
             eval_if_in_filter!(path, filter, page_paths.push(path.to_path_buf()));
         } else if path.is_dir() {
-            for entry in glob(path.join("**/*.yml").as_str())? {
+            log::info!("Path is a directory, searching for .yml files");
+            let glob_pattern = path.join("**/*.yml").as_str().to_string();
+            log::info!("Using glob pattern: {}", glob_pattern);
+            
+            for entry in glob(&glob_pattern)? {
                 match entry {
                     Ok(entry_path) => {
-                        // skip hidden files and folders to avoid loading .git and .github directories
-                        if entry_path.components().any(|component| {
-                            component.as_os_str().to_string_lossy().starts_with(".")
-                        }) {
-                            continue;
+                        log::info!("Found file: {:?}", entry_path);
+                        // skip files in hidden directories (starting with .)
+                        // but allow the root .robopages directory
+                        if let Ok(relative_path) = entry_path.strip_prefix(&path) {
+                            if relative_path.components().any(|component| {
+                                let comp_str = component.as_os_str().to_string_lossy();
+                                comp_str.starts_with(".") && comp_str != "." && comp_str != ".."
+                            }) {
+                                log::info!("Skipping hidden file/directory");
+                                continue;
+                            }
                         }
 
                         if let Ok(utf8_path) = Utf8PathBuf::from_path_buf(entry_path) {
-                            eval_if_in_filter!(utf8_path, filter, page_paths.push(utf8_path));
+                            eval_if_in_filter!(utf8_path, filter, {
+                                log::info!("Adding path: {:?}", utf8_path);
+                                page_paths.push(utf8_path);
+                            });
                         } else {
                             log::error!("failed to convert path to Utf8PathBuf");
                         }
                     }
                     Err(e) => {
-                        log::error!("error in glob pattern: {:?}", e);
+                        log::error!("Error in glob: {}", e);
                     }
                 }
             }
         }
+
+        log::info!("Found {} page paths", page_paths.len());
 
         if page_paths.is_empty() {
             return Err(anyhow::anyhow!("no pages found in {:?}", path));
@@ -248,16 +267,18 @@ impl Book {
 
             // if categories are not set, use the path components
             if page.categories.is_empty() {
-                page.categories = page_path
-                    .strip_prefix(&path)
-                    .unwrap()
-                    .parent()
-                    .map(|p| {
-                        p.components()
-                            .map(|c| c.as_os_str().to_string_lossy().into_owned())
-                            .collect()
-                    })
-                    .unwrap_or_default();
+                let path_buf = page_path.strip_prefix(&path)?;
+                let parent = path_buf.parent();
+                
+                if let Some(parent_path) = parent {
+                    page.categories = parent_path
+                        .components()
+                        .map(|c| c.as_str().to_string())
+                        .collect();
+                    
+                    // Skip empty categories
+                    page.categories.retain(|c| !c.is_empty());
+                }
             }
 
             // make sure function names are unique
