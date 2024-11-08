@@ -6,9 +6,11 @@ mod cmd;
 mod docker;
 
 pub(crate) mod prompt;
+pub(crate) mod ssh;
 
 pub(crate) use cmd::CommandLine;
 pub(crate) use docker::ContainerSource;
+use ssh::SSHConnection;
 
 static ACTIVE_TASKS: AtomicUsize = AtomicUsize::new(0);
 
@@ -49,6 +51,7 @@ async fn wait_for_available_tasks(max_running_tasks: usize) {
 }
 
 pub(crate) async fn execute_call(
+    ssh: Option<SSHConnection>,
     interactive: bool,
     max_running_tasks: usize,
     book: Arc<Book>,
@@ -80,13 +83,15 @@ pub(crate) async fn execute_call(
 
     // validate runtime requirements
     let container = function.function.container.as_ref();
-    let needs_container = 
-        // we're running in non-interactive mode, can't sudo
-        (command_line.sudo && !interactive) || 
-        // app not in $PATH
-        !command_line.app_in_path ||
-        // forced container use
-        (container.is_some() && container.unwrap().force);
+    let needs_container = ssh.is_none() // if ssh is set we don't need a container
+        && (
+            // we're running in non-interactive mode, can't sudo
+            (command_line.sudo && !interactive)
+            // app not in $PATH
+            || !command_line.app_in_path
+            // forced container use
+            || (container.is_some() && container.unwrap().force)
+        );
 
     let command_line = if needs_container {
         let container = match container {
@@ -111,7 +116,15 @@ pub(crate) async fn execute_call(
         command_line
     };
 
-    log::warn!("executing: {}", &command_line);
+    if ssh.is_some() {
+        log::warn!(
+            "executing (as {}): {}",
+            ssh.as_ref().unwrap().to_string(),
+            &command_line
+        );
+    } else {
+        log::warn!("executing: {}", &command_line);
+    }
 
     if interactive
         && prompt::ask(
@@ -127,7 +140,7 @@ pub(crate) async fn execute_call(
     }
 
     // finally execute the command line
-    let content = command_line.execute().await?;
+    let content = command_line.execute(ssh).await?;
     Ok(openai::CallResultMessage {
         role: "tool".to_string(),
         call_id: call.id.clone(),
@@ -136,6 +149,7 @@ pub(crate) async fn execute_call(
 }
 
 pub(crate) async fn execute(
+    ssh: Option<SSHConnection>,
     interactive: bool,
     book: Arc<Book>,
     calls: Vec<openai::Call>,
@@ -144,6 +158,7 @@ pub(crate) async fn execute(
     let mut futures = Vec::new();
     for call in calls {
         futures.push(tokio::spawn(execute_call(
+            ssh.clone(),
             interactive,
             max_running_tasks,
             book.clone(),
@@ -213,7 +228,7 @@ mod tests {
             },
         });
 
-        let result = execute_call(false, 10, book, call).await.unwrap();
+        let result = execute_call(None, false, 10, book, call).await.unwrap();
 
         assert_eq!(result.role, "tool");
         assert_eq!(result.call_id, Some("test_call".to_string()));
@@ -283,7 +298,7 @@ mod tests {
             },
         });
 
-        let results = execute(false, book, calls, 10).await.unwrap();
+        let results = execute(None, false, book, calls, 10).await.unwrap();
 
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].content, "test1\n");
@@ -317,7 +332,7 @@ mod tests {
             },
         }];
 
-        let result = execute(false, Arc::clone(&book), calls, 10).await;
+        let result = execute(None, false, Arc::clone(&book), calls, 10).await;
         assert!(result.is_err());
     }
 
@@ -362,7 +377,7 @@ mod tests {
             },
         }];
 
-        let result = execute(false, Arc::clone(&book), calls, 10).await;
+        let result = execute(None, false, Arc::clone(&book), calls, 10).await;
         assert!(result.is_err());
     }
 }

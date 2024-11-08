@@ -14,12 +14,14 @@ use crate::book::{
     Book,
 };
 use crate::runtime;
+use crate::runtime::ssh::SSHConnection;
 
 use super::ServeArgs;
 
 struct AppState {
     max_running_tasks: usize,
     book: Arc<Book>,
+    ssh: Option<SSHConnection>,
 }
 
 async fn not_found() -> actix_web::Result<HttpResponse> {
@@ -65,7 +67,15 @@ async fn process_calls(
     state: web::Data<Arc<AppState>>,
     calls: web::Json<Vec<openai::Call>>,
 ) -> actix_web::Result<HttpResponse> {
-    match runtime::execute(false, state.book.clone(), calls.0, state.max_running_tasks).await {
+    match runtime::execute(
+        state.ssh.clone(),
+        false,
+        state.book.clone(),
+        calls.0,
+        state.max_running_tasks,
+    )
+    .await
+    {
         Ok(resp) => Ok(HttpResponse::Ok().json(resp)),
         Err(e) => Err(actix_web::error::ErrorBadRequest(e)),
     }
@@ -75,6 +85,18 @@ pub(crate) async fn serve(args: ServeArgs) -> anyhow::Result<()> {
     if !args.address.contains("127.0.0.1:") && !args.address.contains("localhost:") {
         log::warn!("external address specified, this is an unsafe configuration as no authentication is provided");
     }
+
+    // parse and validate SSH connection string if provided
+    let ssh = if let Some(ssh_str) = args.ssh {
+        // parse
+        let conn = SSHConnection::from_str(&ssh_str, &args.ssh_key, args.ssh_key_passphrase)?;
+        // make sure we can connect
+        conn.test_connection().await?;
+
+        Some(conn)
+    } else {
+        None
+    };
 
     let book = Arc::new(Book::from_path(args.path, args.filter)?);
     if !args.lazy {
@@ -103,6 +125,7 @@ pub(crate) async fn serve(args: ServeArgs) -> anyhow::Result<()> {
     let app_state = Arc::new(AppState {
         max_running_tasks,
         book,
+        ssh,
     });
 
     HttpServer::new(move || {

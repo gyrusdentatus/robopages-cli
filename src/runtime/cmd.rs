@@ -1,5 +1,7 @@
 use std::{collections::BTreeMap, fmt};
 
+use super::SSHConnection;
+
 #[derive(Debug)]
 pub struct CommandLine {
     pub sudo: bool,
@@ -65,34 +67,38 @@ impl CommandLine {
         Ok(cmd)
     }
 
-    pub async fn execute(&self) -> anyhow::Result<String> {
-        let output = tokio::process::Command::new(&self.app)
-            .args(&self.args)
-            .output()
-            .await?;
+    pub async fn execute(&self, ssh: Option<SSHConnection>) -> anyhow::Result<String> {
+        if let Some(ssh) = ssh {
+            ssh.execute(self.sudo, &self.app, &self.args).await
+        } else {
+            let output = tokio::process::Command::new(&self.app)
+                .args(&self.args)
+                .output()
+                .await?;
 
-        let mut parts = vec![];
+            let mut parts = vec![];
 
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
 
-        if !output.status.success() {
-            parts.push(format!("EXIT CODE: {}", &output.status));
-        }
-
-        if !stdout.is_empty() {
-            parts.push(stdout.to_string());
-        }
-
-        if !stderr.is_empty() {
-            if output.status.success() {
-                parts.push(stderr.to_string());
-            } else {
-                parts.push(format!("ERROR: {}", stderr));
+            if !output.status.success() {
+                parts.push(format!("EXIT CODE: {}", &output.status));
             }
-        }
 
-        Ok(parts.join("\n"))
+            if !stdout.is_empty() {
+                parts.push(stdout.to_string());
+            }
+
+            if !stderr.is_empty() {
+                if output.status.success() {
+                    parts.push(stderr.to_string());
+                } else {
+                    parts.push(format!("ERROR: {}", stderr));
+                }
+            }
+
+            Ok(parts.join("\n"))
+        }
     }
 }
 
@@ -152,7 +158,7 @@ mod tests {
             env: BTreeMap::new(),
             temp_env_file: None,
         };
-        let result = cmd.execute().await.unwrap();
+        let result = cmd.execute(None).await.unwrap();
         assert_eq!(result, "Hello, World!");
     }
 
@@ -166,7 +172,7 @@ mod tests {
             env: BTreeMap::new(),
             temp_env_file: None,
         };
-        let result = cmd.execute().await.unwrap();
+        let result = cmd.execute(None).await.unwrap();
         assert!(result.contains("EXIT CODE:"));
         assert!(result.contains("ERROR:"));
     }
@@ -184,7 +190,7 @@ mod tests {
             env: BTreeMap::new(),
             temp_env_file: None,
         };
-        let result = cmd.execute().await.unwrap();
+        let result = cmd.execute(None).await.unwrap();
         assert!(result.contains("Hello"));
         assert!(result.contains("Error"));
     }
@@ -199,7 +205,7 @@ mod tests {
             env: BTreeMap::new(),
             temp_env_file: None,
         };
-        let result = cmd.execute().await;
+        let result = cmd.execute(None).await;
         assert!(result.is_err());
     }
 }

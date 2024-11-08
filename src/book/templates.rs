@@ -51,13 +51,14 @@ impl Template {
     }
 }
 
-impl ToString for Template {
-    fn to_string(&self) -> String {
-        match self {
+impl std::fmt::Display for Template {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
             Template::Basic => "basic".to_string(),
             Template::DockerImage => "docker_image".to_string(),
             Template::DockerBuild => "docker_build".to_string(),
-        }
+        };
+        write!(f, "{}", s)
     }
 }
 
