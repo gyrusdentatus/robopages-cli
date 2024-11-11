@@ -12,23 +12,10 @@ pub struct CommandLine {
     pub temp_env_file: Option<tempfile::NamedTempFile>,
 }
 
-impl Clone for CommandLine {
-    fn clone(&self) -> Self {
-        Self {
-            sudo: self.sudo,
-            app: self.app.clone(),
-            app_in_path: self.app_in_path,
-            args: self.args.clone(),
-            env: self.env.clone(),
-            temp_env_file: None,  // Don't clone the temp file, create a new one if needed
-        }
-    }
-}
-
 impl CommandLine {
     pub fn from_vec(vec: &Vec<String>) -> anyhow::Result<Self> {
         log::debug!("Creating CommandLine from vector: {:?}", vec);
-        
+
         if vec.is_empty() {
             log::error!("Empty command line vector provided");
             return Err(anyhow::anyhow!("empty command line"));
@@ -69,8 +56,13 @@ impl CommandLine {
             false
         };
 
-        log::debug!("Created CommandLine: sudo={}, app={}, app_in_path={}, args={:?}", 
-            sudo, app, app_in_path, args);
+        log::debug!(
+            "Created CommandLine: sudo={}, app={}, app_in_path={}, args={:?}",
+            sudo,
+            app,
+            app_in_path,
+            args
+        );
 
         Ok(Self {
             sudo,
@@ -86,51 +78,54 @@ impl CommandLine {
         vec: &Vec<String>,
         env: BTreeMap<String, String>,
     ) -> anyhow::Result<Self> {
-        log::debug!("Creating CommandLine with environment variables");
-        log::trace!("Environment variables: {:?}", env);
+        log::debug!("creating CommandLine with environment variables");
+        log::trace!("environment variables: {:?}", env);
         let mut cmd = Self::from_vec(vec)?;
         cmd.env = env;
         Ok(cmd)
     }
 
-    fn interpolate_variables(&mut self) -> anyhow::Result<()> {
-        log::debug!("Interpolating variables from environment: {:?}", self.env);
-        
-        self.args = self.args.iter().map(|arg| {
-            let mut result = arg.clone();
-            for (key, value) in &self.env {
-                let pattern = format!("${{{}}}", key);
-                if result.contains(&pattern) {
-                    log::debug!("Replacing {} with {}", pattern, value);
-                    result = result.replace(&pattern, value);
-                }
-            }
-            result
-        }).collect();
+    fn get_env_interpolated_args(&self) -> Vec<String> {
+        log::debug!("interpolating variables from environment: {:?}", self.env);
 
-        log::debug!("After interpolation: {:?}", self.args);
-        Ok(())
+        let args = self
+            .args
+            .iter()
+            .map(|arg| {
+                let mut result = arg.clone();
+                for (key, value) in &self.env {
+                    let pattern = format!("${{{}}}", key);
+                    if result.contains(&pattern) {
+                        log::debug!("replacing {} with {}", pattern, value);
+                        result = result.replace(&pattern, value);
+                    }
+                }
+                result
+            })
+            .collect();
+
+        log::debug!("after interpolation: {:?}", &args);
+
+        args
     }
 
     pub async fn execute(&self) -> anyhow::Result<String> {
-        log::info!("Executing command: {}", self);
-        log::debug!("Full command details: {:?}", self);
+        log::debug!("executing command: {}", self);
+        log::debug!("full command details: {:?}", self);
 
-        // Create a mutable copy for interpolation
-        let mut cmd = self.clone();
-        cmd.interpolate_variables()?;
+        let args = self.get_env_interpolated_args();
 
-        let mut command = tokio::process::Command::new(&cmd.app);
-        command.args(&cmd.args);
+        let mut command = tokio::process::Command::new(&self.app);
+        command.args(&args);
 
-        // Log environment variables if present
-        if !cmd.env.is_empty() {
-            log::debug!("Setting environment variables: {:?}", cmd.env);
-            command.envs(&cmd.env);
+        // log environment variables if present
+        if !self.env.is_empty() {
+            log::debug!("setting environment variables: {:?}", self.env);
+            command.envs(&self.env);
         }
 
         let output = command.output().await?;
-        log::debug!("Command completed with status: {:?}", output.status);
+        log::debug!("command completed with status: {:?}", output.status);
 
         let mut parts = vec![];
 
@@ -138,28 +133,31 @@ impl CommandLine {
         let stderr = String::from_utf8_lossy(&output.stderr);
 
         if !output.status.success() {
-            log::warn!("Command failed with exit code: {}", output.status);
+            log::warn!("command failed with exit code: {}", output.status);
             parts.push(format!("EXIT CODE: {}", &output.status));
         }
 
         if !stdout.is_empty() {
-            log::trace!("Command stdout: {}", stdout);
+            log::trace!("command stdout: {}", stdout);
             parts.push(stdout.to_string());
         }
 
         if !stderr.is_empty() {
             if output.status.success() {
-                log::debug!("Command stderr (success): {}", stderr);
+                log::debug!("command stderr (success): {}", stderr);
                 parts.push(stderr.to_string());
             } else {
-                log::error!("Command stderr (failure): {}", stderr);
+                log::error!("command stderr (failure): {}", stderr);
                 parts.push(format!("ERROR: {}", stderr));
             }
         }
 
         let result = parts.join("\n");
-        log::debug!("Command execution completed, output length: {}", result.len());
-        log::trace!("Command output: {}", result);
+        log::debug!(
+            "command execution completed, output length: {}",
+            result.len()
+        );
+        log::trace!("command output: {}", result);
 
         Ok(result)
     }
@@ -270,5 +268,62 @@ mod tests {
         };
         let result = cmd.execute().await;
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_get_env_interpolated_args_with_env_vars() {
+        let mut env = BTreeMap::new();
+        env.insert("TEST_VAR".to_string(), "test_value".to_string());
+        env.insert("OTHER_VAR".to_string(), "other_value".to_string());
+
+        let cmd = CommandLine {
+            sudo: false,
+            app: "echo".to_string(),
+            args: vec!["${TEST_VAR}".to_string(), "${OTHER_VAR}".to_string()],
+            app_in_path: true,
+            env,
+            temp_env_file: None,
+        };
+
+        let result = cmd.get_env_interpolated_args();
+        assert_eq!(result, vec!["test_value", "other_value"]);
+    }
+
+    #[test]
+    fn test_get_env_interpolated_args_with_missing_vars() {
+        let env = BTreeMap::new();
+        let cmd = CommandLine {
+            sudo: false,
+            app: "echo".to_string(),
+            args: vec!["${MISSING_VAR}".to_string()],
+            app_in_path: true,
+            env,
+            temp_env_file: None,
+        };
+
+        let result = cmd.get_env_interpolated_args();
+        assert_eq!(result, vec!["${MISSING_VAR}"]);
+    }
+
+    #[test]
+    fn test_get_env_interpolated_args_with_mixed_content() {
+        let mut env = BTreeMap::new();
+        env.insert("VAR".to_string(), "value".to_string());
+
+        let cmd = CommandLine {
+            sudo: false,
+            app: "echo".to_string(),
+            args: vec![
+                "prefix_${VAR}".to_string(),
+                "normal_arg".to_string(),
+                "${VAR}_suffix".to_string(),
+            ],
+            app_in_path: true,
+            env,
+            temp_env_file: None,
+        };
+
+        let result = cmd.get_env_interpolated_args();
+        assert_eq!(result, vec!["prefix_value", "normal_arg", "value_suffix"]);
     }
 }
