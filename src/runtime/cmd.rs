@@ -1,7 +1,5 @@
 use std::{collections::BTreeMap, fmt};
 
-use super::SSHConnection;
-
 #[derive(Debug)]
 pub struct CommandLine {
     pub sudo: bool,
@@ -111,12 +109,7 @@ impl CommandLine {
         args
     }
 
-    pub async fn execute(&self, ssh: Option<SSHConnection>) -> anyhow::Result<String> {
-        // execyte via ssh
-        if let Some(ssh) = ssh {
-            return ssh.execute(self.sudo, &self.app, &self.args).await;
-        }
-
+    pub async fn execute(&self) -> anyhow::Result<String> {
         log::debug!("executing command: {}", self);
         log::debug!("full command details: {:?}", self);
 
@@ -226,7 +219,7 @@ mod tests {
             env: BTreeMap::new(),
             temp_env_file: None,
         };
-        let result = cmd.execute(None).await.unwrap();
+        let result = cmd.execute().await.unwrap();
         assert_eq!(result, "Hello, World!");
     }
 
@@ -240,7 +233,7 @@ mod tests {
             env: BTreeMap::new(),
             temp_env_file: None,
         };
-        let result = cmd.execute(None).await.unwrap();
+        let result = cmd.execute().await.unwrap();
         assert!(result.contains("EXIT CODE:"));
         assert!(result.contains("ERROR:"));
     }
@@ -258,7 +251,7 @@ mod tests {
             env: BTreeMap::new(),
             temp_env_file: None,
         };
-        let result = cmd.execute(None).await.unwrap();
+        let result = cmd.execute().await.unwrap();
         assert!(result.contains("Hello"));
         assert!(result.contains("Error"));
     }
@@ -273,7 +266,7 @@ mod tests {
             env: BTreeMap::new(),
             temp_env_file: None,
         };
-        let result = cmd.execute(None).await;
+        let result = cmd.execute().await;
         assert!(result.is_err());
     }
 

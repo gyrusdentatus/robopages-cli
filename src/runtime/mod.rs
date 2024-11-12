@@ -86,8 +86,9 @@ pub(crate) async fn execute_call(
     let mut needs_container = false;
     let mut can_ssh = false;
 
+    // if --ssh was provided
     if let Some(ssh) = ssh.as_ref() {
-        // if ssh is set we don't need a container
+        // check if the app is in $PATH on the ssh host
         can_ssh = ssh.app_in_path(&command_line.app).await?;
         if !can_ssh {
             log::warn!(
@@ -112,6 +113,7 @@ pub(crate) async fn execute_call(
         }
     }
 
+    // wrap the command line in a container if needed
     let command_line = if needs_container {
         let container = match container {
             Some(c) => c,
@@ -159,12 +161,17 @@ pub(crate) async fn execute_call(
     }
 
     // finally execute the command line
-    let content = command_line
-        .execute(match can_ssh {
-            true => ssh,
-            false => None,
-        })
-        .await?;
+    let content = if can_ssh {
+        // execute via ssh
+        ssh.as_ref()
+            .unwrap()
+            .execute(command_line.sudo, &command_line.app, &command_line.args)
+            .await?
+    } else {
+        // execute locally
+        command_line.execute().await?
+    };
+
     Ok(openai::CallResultMessage {
         role: "tool".to_string(),
         call_id: call.id.clone(),
