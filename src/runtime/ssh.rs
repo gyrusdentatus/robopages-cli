@@ -139,6 +139,16 @@ impl SSHConnection {
 
         Ok(())
     }
+
+    pub(crate) async fn app_in_path(&self, app: &str) -> anyhow::Result<bool> {
+        let result = self
+            .client()
+            .await?
+            .execute(&format!("which {}", app))
+            .await?;
+
+        Ok(result.exit_status == 0)
+    }
 }
 
 impl std::fmt::Display for SSHConnection {

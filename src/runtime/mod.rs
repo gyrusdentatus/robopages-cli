@@ -83,15 +83,34 @@ pub(crate) async fn execute_call(
 
     // validate runtime requirements
     let container = function.function.container.as_ref();
-    let needs_container = ssh.is_none() // if ssh is set we don't need a container
-        && (
+    let mut needs_container = false;
+    let mut can_ssh = false;
+
+    if let Some(ssh) = ssh.as_ref() {
+        // if ssh is set we don't need a container
+        can_ssh = ssh.app_in_path(&command_line.app).await?;
+        if !can_ssh {
+            log::warn!(
+                "{} not found in $PATH on {}",
+                command_line.app,
+                ssh.to_string()
+            );
+        }
+    }
+
+    // we are not going to use ssh, so we need to check if we need a container
+    if !can_ssh {
+        if command_line.sudo && !interactive {
             // we're running in non-interactive mode, can't sudo
-            (command_line.sudo && !interactive)
-            // app not in $PATH
-            || !command_line.app_in_path
+            needs_container = true;
+        } else if !command_line.app_in_path {
+            // app not in $PATH, we need a container
+            needs_container = true;
+        } else if container.is_some() && container.unwrap().force {
             // forced container use
-            || (container.is_some() && container.unwrap().force)
-        );
+            needs_container = true;
+        }
+    }
 
     let command_line = if needs_container {
         let container = match container {
@@ -116,7 +135,7 @@ pub(crate) async fn execute_call(
         command_line
     };
 
-    if ssh.is_some() {
+    if can_ssh {
         log::warn!(
             "executing (as {}): {}",
             ssh.as_ref().unwrap().to_string(),
@@ -140,7 +159,12 @@ pub(crate) async fn execute_call(
     }
 
     // finally execute the command line
-    let content = command_line.execute(ssh).await?;
+    let content = command_line
+        .execute(match can_ssh {
+            true => ssh,
+            false => None,
+        })
+        .await?;
     Ok(openai::CallResultMessage {
         role: "tool".to_string(),
         call_id: call.id.clone(),
