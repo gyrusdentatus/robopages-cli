@@ -12,7 +12,7 @@ pub(crate) async fn view(args: ViewArgs) -> anyhow::Result<()> {
             println!("    * {} : {}", function_name, function.description);
             println!(
                 "         running with: {}",
-                ExecutionFlavor::for_function(&function)?.to_string()
+                ExecutionFlavor::for_function(&function)?
             );
             println!("         parameters:");
             for (parameter_name, parameter) in &function.parameters {

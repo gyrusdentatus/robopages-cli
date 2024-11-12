@@ -39,15 +39,6 @@ impl ExecutionFlavor {
         ExecutionFlavor::Error(message)
     }
 
-    pub fn to_string(&self) -> String {
-        match self {
-            Self::Shell(shell) => shell.to_string(),
-            Self::Sudo => "sudo".to_string(),
-            Self::Docker(image) => format!("docker {}", image),
-            Self::Error(message) => message.to_string(),
-        }
-    }
-
     fn get_current_shell() -> String {
         let shell_name = std::env::var("SHELL")
             .map(|s| s.split('/').last().unwrap_or("unknown").to_string())
@@ -108,6 +99,18 @@ impl ExecutionFlavor {
             }
             Err(e) => Err(e),
         }
+    }
+}
+
+impl std::fmt::Display for ExecutionFlavor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::Shell(shell) => shell.to_string(),
+            Self::Sudo => "sudo".to_string(),
+            Self::Docker(image) => format!("docker {}", image),
+            Self::Error(message) => message.to_string(),
+        };
+        write!(f, "{}", s)
     }
 }
 
@@ -202,8 +205,8 @@ impl<'a> FunctionRef<'a> {
                         let env_var = std::env::var(&env_var_name);
                         let env_var_value = if let Ok(value) = env_var {
                             value
-                        } else if var_default.is_some() {
-                            var_default.unwrap().to_string()
+                        } else if let Some(def) = var_default {
+                            def.to_string()
                         } else {
                             return Err(anyhow::anyhow!(
                                 "environment variable {} not set",
@@ -217,8 +220,12 @@ impl<'a> FunctionRef<'a> {
                         env_var_value
                     } else if let Some(value) = arguments.get(var_name) {
                         // if the value is empty and there's a default value, use the default value
-                        if value.is_empty() && var_default.is_some() {
-                            var_default.unwrap().to_string()
+                        if value.is_empty() {
+                            if let Some(def) = var_default {
+                                def.to_string()
+                            } else {
+                                value.to_string()
+                            }
                         } else {
                             // otherwise, use the provided value
                             value.to_string()

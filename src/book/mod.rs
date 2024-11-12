@@ -192,7 +192,7 @@ pub struct Book {
 
 impl Book {
     pub fn from_path(path: Utf8PathBuf, filter: Option<String>) -> anyhow::Result<Self> {
-        log::info!("Searching for pages in {:?}", path);
+        log::debug!("Searching for pages in {:?}", path);
         let mut page_paths = Vec::new();
 
         let path = Utf8PathBuf::from(
@@ -203,20 +203,20 @@ impl Book {
         .canonicalize_utf8()
         .map_err(|e| anyhow::anyhow!("failed to canonicalize path: {}", e))?;
 
-        log::info!("Canonicalized path: {:?}", path);
+        log::debug!("canonicalized path: {:?}", path);
 
         if path.is_file() {
-            log::info!("Path is a file");
+            log::debug!("path is a file");
             eval_if_in_filter!(path, filter, page_paths.push(path.to_path_buf()));
         } else if path.is_dir() {
-            log::info!("Path is a directory, searching for .yml files");
+            log::debug!("path is a directory, searching for .yml files");
             let glob_pattern = path.join("**/*.yml").as_str().to_string();
-            log::info!("Using glob pattern: {}", glob_pattern);
+            log::debug!("using glob pattern: {}", glob_pattern);
 
             for entry in glob(&glob_pattern)? {
                 match entry {
                     Ok(entry_path) => {
-                        log::debug!("Found file: {:?}", entry_path);
+                        log::debug!("found file: {:?}", entry_path);
                         // skip files in hidden directories (starting with .)
                         // but allow the root .robopages directory
                         if let Ok(relative_path) = entry_path.strip_prefix(&path) {
@@ -224,7 +224,7 @@ impl Book {
                                 let comp_str = component.as_os_str().to_string_lossy();
                                 comp_str.starts_with(".") && comp_str != "." && comp_str != ".."
                             }) {
-                                log::debug!("Skipping hidden file/directory");
+                                log::debug!("skipping hidden file/directory");
                                 continue;
                             }
                         }
@@ -239,13 +239,13 @@ impl Book {
                         }
                     }
                     Err(e) => {
-                        log::error!("Error in glob: {}", e);
+                        log::error!("error in glob: {}", e);
                     }
                 }
             }
         }
 
-        log::info!("Found {} page paths", page_paths.len());
+        log::debug!("found {} page paths", page_paths.len());
 
         if page_paths.is_empty() {
             return Err(anyhow::anyhow!("no pages found in {:?}", path));

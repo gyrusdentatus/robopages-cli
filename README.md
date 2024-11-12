@@ -155,6 +155,18 @@ Repeat for multiple variables:
 robopages run -F function_name -A -D target=www.example.com -D foo=bar
 ```
 
+#### SSH
+
+The `run` and `serve` commands support an optional SSH connection string. If provided, commands will be executed over SSH on the given host.
+
+```bash
+robopages serve --ssh user@host:port --ssh-key ~/.ssh/id_ed25519
+```
+
+> [!IMPORTANT]
+> * Setting a SSH connection string will override any container configuration.
+> * If the function requires sudo, the remote host is expected to have passwordless sudo access. 
+
 ### Using with LLMs
 
 The examples folder contains integration examples for [Rigging](/examples/rigging_example.py), [OpenAI](/examples/openai_example.py), [Groq](/examples/groq_example.py), [OLLAMA](/examples/ollama_example.py) and [Nerve](/examples/nerve.md).

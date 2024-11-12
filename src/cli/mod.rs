@@ -92,6 +92,15 @@ pub(crate) struct ServeArgs {
     /// Maximum number of parallel calls to execute. Leave to 0 to use all available cores.
     #[clap(long, default_value = "0")]
     workers: usize,
+    /// Optional SSH connection string, if set commands will be executed over SSH on the given host.
+    #[clap(long)]
+    ssh: Option<String>,
+    /// SSH key to use for authentication if --ssh is set.
+    #[clap(long, default_value = "~/.ssh/id_ed25519")]
+    ssh_key: String,
+    /// SSH passphrase to unlock the key.
+    #[clap(long)]
+    ssh_key_passphrase: Option<String>,
 }
 
 #[derive(Debug, Args)]
@@ -108,6 +117,15 @@ pub(crate) struct RunArgs {
     /// Execute the function without user interaction.
     #[clap(long, short = 'A')]
     auto: bool,
+    /// Optional SSH connection string, if set commands will be executed over SSH on the given host.
+    #[clap(long)]
+    ssh: Option<String>,
+    /// SSH key to use for authentication if --ssh is set.
+    #[clap(long, default_value = "~/.ssh/id_ed25519")]
+    ssh_key: String,
+    /// SSH passphrase to unlock the key.
+    #[clap(long)]
+    ssh_key_passphrase: Option<String>,
 }
 
 #[derive(Debug, Args)]
