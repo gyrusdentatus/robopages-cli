@@ -16,7 +16,10 @@ pub struct CommandLine {
 
 impl CommandLine {
     pub fn from_vec(vec: &Vec<String>) -> anyhow::Result<Self> {
+        log::debug!("Creating CommandLine from vector: {:?}", vec);
+
         if vec.is_empty() {
+            log::error!("Empty command line vector provided");
             return Err(anyhow::anyhow!("empty command line"));
         }
 
@@ -25,16 +28,21 @@ impl CommandLine {
         let mut args = Vec::new();
 
         for arg in vec {
+            log::trace!("Processing argument: {}", arg);
             if arg == "sudo" {
+                log::debug!("Sudo flag detected");
                 sudo = true;
             } else if app.is_empty() {
+                log::debug!("Setting application name: {}", arg);
                 app = arg.to_string();
             } else {
+                log::trace!("Adding argument: {}", arg);
                 args.push(arg.to_string());
             }
         }
 
         if app.is_empty() {
+            log::error!("Could not determine application name from: {:?}", vec);
             return Err(anyhow::anyhow!(
                 "could not determine application name from command line: {:?}",
                 vec
@@ -42,11 +50,21 @@ impl CommandLine {
         }
 
         let app_in_path = if let Ok(path) = which::which(&app) {
+            log::debug!("Found application in path: {}", path.display());
             app = path.to_string_lossy().to_string();
             true
         } else {
+            log::debug!("Application '{}' not found in PATH", app);
             false
         };
+
+        log::debug!(
+            "Created CommandLine: sudo={}, app={}, app_in_path={}, args={:?}",
+            sudo,
+            app,
+            app_in_path,
+            args
+        );
 
         Ok(Self {
             sudo,
@@ -62,43 +80,93 @@ impl CommandLine {
         vec: &Vec<String>,
         env: BTreeMap<String, String>,
     ) -> anyhow::Result<Self> {
+        log::debug!("creating CommandLine with environment variables");
+        log::trace!("environment variables: {:?}", env);
         let mut cmd = Self::from_vec(vec)?;
         cmd.env = env;
         Ok(cmd)
     }
 
-    pub async fn execute(&self, ssh: Option<SSHConnection>) -> anyhow::Result<String> {
-        if let Some(ssh) = ssh {
-            ssh.execute(self.sudo, &self.app, &self.args).await
-        } else {
-            let output = tokio::process::Command::new(&self.app)
-                .args(&self.args)
-                .output()
-                .await?;
+    fn get_env_interpolated_args(&self) -> Vec<String> {
+        log::debug!("interpolating variables from environment: {:?}", self.env);
 
-            let mut parts = vec![];
-
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            let stderr = String::from_utf8_lossy(&output.stderr);
-
-            if !output.status.success() {
-                parts.push(format!("EXIT CODE: {}", &output.status));
-            }
-
-            if !stdout.is_empty() {
-                parts.push(stdout.to_string());
-            }
-
-            if !stderr.is_empty() {
-                if output.status.success() {
-                    parts.push(stderr.to_string());
-                } else {
-                    parts.push(format!("ERROR: {}", stderr));
+        let args = self
+            .args
+            .iter()
+            .map(|arg| {
+                let mut result = arg.clone();
+                for (key, value) in &self.env {
+                    let pattern = format!("${{{}}}", key);
+                    if result.contains(&pattern) {
+                        log::debug!("replacing {} with {}", pattern, value);
+                        result = result.replace(&pattern, value);
+                    }
                 }
-            }
+                result
+            })
+            .collect();
 
-            Ok(parts.join("\n"))
+        log::debug!("after interpolation: {:?}", &args);
+
+        args
+    }
+
+    pub async fn execute(&self, ssh: Option<SSHConnection>) -> anyhow::Result<String> {
+        // execyte via ssh
+        if let Some(ssh) = ssh {
+            return ssh.execute(self.sudo, &self.app, &self.args).await;
         }
+
+        log::debug!("executing command: {}", self);
+        log::debug!("full command details: {:?}", self);
+
+        let args = self.get_env_interpolated_args();
+
+        let mut command = tokio::process::Command::new(&self.app);
+        command.args(&args);
+
+        // log environment variables if present
+        if !self.env.is_empty() {
+            log::debug!("setting environment variables: {:?}", self.env);
+            command.envs(&self.env);
+        }
+
+        let output = command.output().await?;
+        log::debug!("command completed with status: {:?}", output.status);
+
+        let mut parts = vec![];
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+
+        if !output.status.success() {
+            log::warn!("command failed with exit code: {}", output.status);
+            parts.push(format!("EXIT CODE: {}", &output.status));
+        }
+
+        if !stdout.is_empty() {
+            log::trace!("command stdout: {}", stdout);
+            parts.push(stdout.to_string());
+        }
+
+        if !stderr.is_empty() {
+            if output.status.success() {
+                log::debug!("command stderr (success): {}", stderr);
+                parts.push(stderr.to_string());
+            } else {
+                log::error!("command stderr (failure): {}", stderr);
+                parts.push(format!("ERROR: {}", stderr));
+            }
+        }
+
+        let result = parts.join("\n");
+        log::debug!(
+            "command execution completed, output length: {}",
+            result.len()
+        );
+        log::trace!("command output: {}", result);
+
+        Ok(result)
     }
 }
 
@@ -207,5 +275,62 @@ mod tests {
         };
         let result = cmd.execute(None).await;
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_get_env_interpolated_args_with_env_vars() {
+        let mut env = BTreeMap::new();
+        env.insert("TEST_VAR".to_string(), "test_value".to_string());
+        env.insert("OTHER_VAR".to_string(), "other_value".to_string());
+
+        let cmd = CommandLine {
+            sudo: false,
+            app: "echo".to_string(),
+            args: vec!["${TEST_VAR}".to_string(), "${OTHER_VAR}".to_string()],
+            app_in_path: true,
+            env,
+            temp_env_file: None,
+        };
+
+        let result = cmd.get_env_interpolated_args();
+        assert_eq!(result, vec!["test_value", "other_value"]);
+    }
+
+    #[test]
+    fn test_get_env_interpolated_args_with_missing_vars() {
+        let env = BTreeMap::new();
+        let cmd = CommandLine {
+            sudo: false,
+            app: "echo".to_string(),
+            args: vec!["${MISSING_VAR}".to_string()],
+            app_in_path: true,
+            env,
+            temp_env_file: None,
+        };
+
+        let result = cmd.get_env_interpolated_args();
+        assert_eq!(result, vec!["${MISSING_VAR}"]);
+    }
+
+    #[test]
+    fn test_get_env_interpolated_args_with_mixed_content() {
+        let mut env = BTreeMap::new();
+        env.insert("VAR".to_string(), "value".to_string());
+
+        let cmd = CommandLine {
+            sudo: false,
+            app: "echo".to_string(),
+            args: vec![
+                "prefix_${VAR}".to_string(),
+                "normal_arg".to_string(),
+                "${VAR}_suffix".to_string(),
+            ],
+            app_in_path: true,
+            env,
+            temp_env_file: None,
+        };
+
+        let result = cmd.get_env_interpolated_args();
+        assert_eq!(result, vec!["prefix_value", "normal_arg", "value_suffix"]);
     }
 }
