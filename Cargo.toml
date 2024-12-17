@@ -2,7 +2,7 @@
 name = "robopages"
 description = "CLI and API server for Robopages, a YAML based files for describing tools to large language models (LLMs)"
 authors = ["Simone Margaritelli (simone@dreadnode.io)"]
-version = "0.3.2"
+version = "0.4.0"
 edition = "2021"
 readme = "README.md"
 repository = "https://github.com/dreadnode/robopages-cli"
