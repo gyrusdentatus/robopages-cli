@@ -1,5 +1,17 @@
 # Robopages Server
 
+<div align="center">
+
+<img
+  src="https://d1lppblt9t2x15.cloudfront.net/logos/5714928f3cdc09503751580cffbe8d02.png"
+  alt="Logo"
+  align="center"
+  width="144px"
+  height="144px"
+/>
+
+
+
 <p align="center">
   <a href="https://github.com/dreadnode/robopages-cli/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/dreadnode/robopages-cli.svg?style=fl_pathat-square"></a>
   <a href="https://crates.io/crates/robopages"><img alt="Crate" src="https://img.shields.io/crates/v/robopages.svg"></a>
@@ -9,7 +21,15 @@
   <a href="https://github.com/dreadnode/robopages-cli/blob/master/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
 </p>
 
+## CLI and API server for [robopages](https://github.com/dreadnode/robopages)
+
+</div>
+
+# Table of Contents
+
 - [Robopages Server](#robopages-server)
+  - [CLI and API server for robopages](#cli-and-api-server-for-robopages)
+- [Table of Contents](#table-of-contents)
   - [Install with Cargo](#install-with-cargo)
   - [Pull from Docker Hub](#pull-from-docker-hub)
   - [Build Docker image](#build-docker-image)
@@ -20,6 +40,7 @@
       - [SSH](#ssh)
     - [Using with LLMs](#using-with-llms)
   - [Docker Container Failures](#docker-container-failures)
+
 
 [Robopages are YAML based files](https://github.com/dreadnode/robopages) for describing tools to large language models (LLMs). They simplify the process of defining and using external tools in LLM-powered applications. By leveraging the `robopages-cli` function calling server, developers can avoid the tedious task of manually writing JSON declarations for each tool. This approach streamlines tool integration, improves maintainability, and allows for more dynamic and flexible interactions between LLMs and external utilities.
 
