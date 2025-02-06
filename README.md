@@ -9,6 +9,18 @@
   <a href="https://github.com/dreadnode/robopages-cli/blob/master/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
 </p>
 
+- [Robopages Server](#robopages-server)
+  - [Install with Cargo](#install-with-cargo)
+  - [Pull from Docker Hub](#pull-from-docker-hub)
+  - [Build Docker image](#build-docker-image)
+  - [Note about Docker](#note-about-docker)
+  - [Build from source](#build-from-source)
+  - [Usage](#usage)
+    - [CLI](#cli)
+      - [SSH](#ssh)
+    - [Using with LLMs](#using-with-llms)
+  - [Docker Container Failures](#docker-container-failures)
+
 [Robopages are YAML based files](https://github.com/dreadnode/robopages) for describing tools to large language models (LLMs). They simplify the process of defining and using external tools in LLM-powered applications. By leveraging the `robopages-cli` function calling server, developers can avoid the tedious task of manually writing JSON declarations for each tool. This approach streamlines tool integration, improves maintainability, and allows for more dynamic and flexible interactions between LLMs and external utilities.
 
 Pages are loaded by default from the `~/.robopages/` directory (or any folder set in the `ROBOPAGES_PATH` environment variable), see the `https://github.com/dreadnode/robopages` repository for examples.
@@ -165,8 +177,17 @@ robopages serve --ssh user@host:port --ssh-key ~/.ssh/id_ed25519
 
 > [!IMPORTANT]
 > * Setting a SSH connection string will override any container configuration.
-> * If the function requires sudo, the remote host is expected to have passwordless sudo access. 
+> * If the function requires sudo, the remote host is expected to have passwordless sudo access.
 
 ### Using with LLMs
 
 The examples folder contains integration examples for [Rigging](/examples/rigging_example.py), [OpenAI](/examples/openai_example.py), [Groq](/examples/groq_example.py), [OLLAMA](/examples/ollama_example.py) and [Nerve](/examples/nerve.md).
+
+## Docker Container Failures
+
+If a function's required Docker container fails to pull (e.g., due to missing permissions or non-existent image), the function will fail to execute. To resolve this:
+
+1. Either gain access to the required container, or
+2. Remove the robopage file that references the inaccessible container
+
+This behavior is intentional to prevent functions from executing without their required runtime dependencies.
