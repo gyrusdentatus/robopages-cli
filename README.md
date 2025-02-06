@@ -21,7 +21,7 @@
   <a href="https://github.com/dreadnode/robopages-cli/blob/master/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
 </p>
 
-## CLI and API server for [robopages](https://github.com/dreadnode/robopages)
+**CLI and API server for [robopages](https://github.com/dreadnode/robopages)**
 
 </div>
 
