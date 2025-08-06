@@ -4,7 +4,7 @@ use camino::Utf8PathBuf;
 use glob::glob;
 use serde::{Deserialize, Serialize};
 
-use crate::runtime::{CommandLine, ContainerSource};
+use crate::runtime::{get_container_runtime, CommandLine, ContainerSource};
 
 pub(crate) mod flavors;
 pub(crate) mod runtime;
@@ -74,10 +74,11 @@ fn default_preserve_app() -> bool {
 
 impl Container {
     pub fn wrap(&self, cmdline: CommandLine) -> anyhow::Result<CommandLine> {
+        let runtime = get_container_runtime();
         let mut dockerized = CommandLine {
             sudo: false,
-            app: which::which("docker")
-                .map_err(|e| anyhow::anyhow!("docker executable not found: {}", e))?
+            app: which::which(&runtime)
+                .map_err(|e| anyhow::anyhow!("{} executable not found: {}", runtime, e))?
                 .to_string_lossy()
                 .to_string(),
             app_in_path: true,

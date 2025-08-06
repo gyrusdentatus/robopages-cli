@@ -9,7 +9,7 @@ pub(crate) mod prompt;
 pub(crate) mod ssh;
 
 pub(crate) use cmd::CommandLine;
-pub(crate) use docker::ContainerSource;
+pub(crate) use docker::{get_container_runtime, ContainerSource};
 use ssh::SSHConnection;
 
 static ACTIVE_TASKS: AtomicUsize = AtomicUsize::new(0);

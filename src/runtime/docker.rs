@@ -1,4 +1,5 @@
 use std::{
+    env,
     path::{Path, PathBuf},
     process::Stdio,
 };
@@ -9,6 +10,11 @@ use tokio::{
     process::Command,
     task,
 };
+
+/// Get the container runtime command from environment or default to "docker"
+pub fn get_container_runtime() -> String {
+    env::var("ROBOPAGES_CONTAINER_RUNTIME").unwrap_or_else(|_| "docker".to_string())
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ContainerSource {
@@ -73,12 +79,13 @@ async fn run_command(command: &str, args: &[&str]) -> anyhow::Result<()> {
 }
 
 pub(crate) async fn pull_image(image: &str, platform: Option<String>) -> anyhow::Result<()> {
+    let runtime = get_container_runtime();
     run_command(
         "sh",
         &[
             "-c",
             &format!(
-                "docker images -q '{image}' | grep -q . || docker pull {}'{image}'",
+                "{runtime} images -q '{image}' | grep -q . || {runtime} pull {}'{image}'",
                 if let Some(platform) = platform {
                     format!("--platform '{}' ", platform)
                 } else {
@@ -91,6 +98,7 @@ pub(crate) async fn pull_image(image: &str, platform: Option<String>) -> anyhow:
 }
 
 pub(crate) async fn build_image(name: &str, path: &str) -> anyhow::Result<()> {
+    let runtime = get_container_runtime();
     let dockerfile = PathBuf::from(path);
     if !dockerfile.exists() {
         return Err(anyhow::anyhow!("dockerfile '{}' does not exist", path));
@@ -105,7 +113,7 @@ pub(crate) async fn build_image(name: &str, path: &str) -> anyhow::Result<()> {
         &[
             "-c",
             &format!(
-                "docker build -f '{}' -t '{name}' --quiet '{}'",
+                "{runtime} build -f '{}' -t '{name}' --quiet '{}'",
                 dockerfile.display(),
                 dockerfile.parent().unwrap_or(Path::new(".")).display(),
             ),
